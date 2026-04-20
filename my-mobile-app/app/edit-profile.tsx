@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { uploadFile } from '../lib/supabase';
 
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -51,7 +52,12 @@ export default function EditProfileScreen() {
     });
 
     if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
+      try {
+        const uploadedUrl = await uploadFile(result.assets[0].uri, 'profiles');
+        setSelectedImage(uploadedUrl);
+      } catch (error) {
+        Alert.alert("Upload Failed", "Could not upload profile image.");
+      }
     }
   };
 

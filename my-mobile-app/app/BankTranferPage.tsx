@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { ChevronLeft, CloudUpload, Hash } from 'lucide-react-native';
 import React, { useState } from 'react';
+import { uploadFile } from '../lib/supabase';
 import {
     ActivityIndicator,
     Alert,
@@ -78,6 +79,10 @@ const BankTransferPage = () => {
       Alert.alert('Error', 'Please fill in bank name and branch!');
       return;
     }
+    if (!receiptFile?.uri) {
+      Alert.alert('Error', 'Please select a valid receipt image!');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -91,12 +96,13 @@ const BankTransferPage = () => {
 
       // User දීල නැත්නම් fallback ID generate කරනවා
       const finalTransactionId = formData.transactionId.trim() || generateFallbackId();
+      const uploadedUrl = await uploadFile(receiptFile.uri, 'payments');
 
       const submissionData = {
         bookingId:     resolvedBookingId,
         amount:        parsedAmount,
         paymentMethod: 'bank_transfer',
-        receiptUrl:    preview,
+        receiptUrl:    uploadedUrl,
         transactionId: finalTransactionId,
         paymentDetails: {
           customerName: formData.customerName,

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Home, Info, PhoneCall, User } from "lucide-react-native";
+import { ChevronLeft, Home, Info, PhoneCall, User, Car } from "lucide-react-native";
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -63,6 +63,14 @@ export default function LinkPage() {
             <User size={24} color="#8b5cf6" />
           </View>
           <Text style={styles.cardText}>My Profile Settings</Text>
+        </TouchableOpacity>
+
+        {/* 5. Vehicles Page */}
+        <TouchableOpacity onPress={() => router.push('/vehiclePage')} style={styles.card}>
+          <View style={[styles.iconBox, { backgroundColor: '#fed7aa' }]}>
+            <Car size={24} color="#ea580c" />
+          </View>
+          <Text style={styles.cardText}>Our Fleet</Text>
         </TouchableOpacity>
 
         {/*driver page - commented out until drivers route is created*/}
@@ -155,6 +163,14 @@ export default function LinkPage() {
           <Text style={styles.cardText
           }>Request Cancel</Text>
           
+        </TouchableOpacity>
+
+        {/* admin page */}
+        <TouchableOpacity onPress={() => router.push('/adminPage' as any)} style={styles.card}>
+          <View style={[styles.iconBox, { backgroundColor: '#eef2ff' }]}>
+            <User size={24} color="#4f46e5" />
+          </View>
+          <Text style={styles.cardText}>Admin Page</Text>
         </TouchableOpacity>
 
       </ScrollView>

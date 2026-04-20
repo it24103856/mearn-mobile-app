@@ -59,7 +59,7 @@ export default function RegisterScreen() {
             if (imageUri) {
                 console.log("Uploading to Supabase...");
                 // lib/supabase.ts තුළ 'expo-file-system/legacy' භාවිතා කර ඇති බව තහවුරු කරගන්න
-                finalImageUrl = await uploadFile(imageUri);
+                finalImageUrl = await uploadFile(imageUri, 'profiles');
             }
 
             const userData = {

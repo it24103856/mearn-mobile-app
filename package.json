@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@react-native-picker/picker": "^2.11.4",
+    "expo-print": "^55.0.13",
+    "expo-sharing": "^55.0.18",
+    "react-native-toast-message": "^2.3.3",
+    "victory-native": "^41.20.2"
+  }
+}

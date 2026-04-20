@@ -78,11 +78,12 @@ export default function Header() {
             <TouchableOpacity onPress={() => navigateTo("/")}><Text style={styles.linkText}>Home</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigateTo("/about")}><Text style={styles.linkText}>About Us</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigateTo("/contact")}><Text style={styles.linkText}>Contact Us</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => navigateTo("/driverpage")}><Text style={styles.linkText}>Driverse</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigateTo("/vehiclePage")}><Text style={styles.linkText}>Vehicles</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigateTo("/driverpage")}><Text style={styles.linkText}>Drivers</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigateTo("/hotel")}><Text style={styles.linkText}>Hotels</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => navigateTo("/destination")}><Text style={styles.linkText}>Destinatiions</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigateTo("/destination")}><Text style={styles.linkText}>Destinations</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigateTo("/packages")}><Text style={styles.linkText}>Packages</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => navigateTo("/feedback")}><Text style={styles.linkText}>FeedBack</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigateTo("/feedback")}><Text style={styles.linkText}>Feedback</Text></TouchableOpacity>
           </View>
         </View>
       </Modal>

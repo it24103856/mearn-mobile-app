@@ -20,7 +20,7 @@ const parseJsonFromResponse = (text = "") => {
     return JSON.parse(cleaned);
 };
 
-export const analyzeReceiptWithGemini = async ({ receiptUrl, expectedAmount, expectedCurrency }) => {
+export const analyzeReceiptWithGemini = async ({ receiptUrl, expectedAmount, expectedCurrency,expectedRemark }) => {
     if (!process.env.GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY is missing. Add it to your environment variables.");
     }
@@ -44,6 +44,7 @@ Return ONLY valid JSON (no markdown block) using this exact schema:
   "paymentConfirmed": boolean,
   "extractedAmount": number | null,
   "extractedCurrency": string | null,
+  "extractedRemark": string | null,
   "transactionId": string | null,
   "paymentDate": string | null,
   "confidence": number,
@@ -53,6 +54,7 @@ Return ONLY valid JSON (no markdown block) using this exact schema:
 Rules:
 - expectedAmount: ${expectedAmount}
 - expectedCurrency: ${expectedCurrency || "LKR"}
+- expectedRemark: ${expectedRemark} (Verify if this or something very similar is written on the receipt).
 - paymentConfirmed should be true only when a payment receipt is visible and the amount matches the expected amount.
 - confidence should be a number between 0 and 1.
 - If a field is missing in the image, return null for that field.`;
@@ -74,15 +76,31 @@ Rules:
     const parsed = parseJsonFromResponse(text);
     console.log("Parsed JSON:", parsed);
 
-    // Step 5: Return structured result
+    // Step 5: Validate remark if expected remark is provided
+    let paymentConfirmed = Boolean(parsed.paymentConfirmed);
+    let validationReason = parsed.reason || "No reason provided by model";
+
+    if (expectedRemark && parsed.extractedRemark) {
+        const remarkMatch = parsed.extractedRemark.toLowerCase().trim() === expectedRemark.toLowerCase().trim();
+        if (!remarkMatch) {
+            paymentConfirmed = false;
+            validationReason = `Remark mismatch: Expected '${expectedRemark}' but found '${parsed.extractedRemark}'. Amount matched but remark validation failed.`;
+            console.log("❌ Remark mismatch - paymentConfirmed set to false:", validationReason);
+        } else {
+            console.log("✅ Remark matched!");
+        }
+    }
+
+    // Step 6: Return structured result
     return {
         isReceipt: Boolean(parsed.isReceipt),
-        paymentConfirmed: Boolean(parsed.paymentConfirmed),
+        paymentConfirmed: paymentConfirmed,
         extractedAmount: typeof parsed.extractedAmount === "number" ? parsed.extractedAmount : null,
         extractedCurrency: parsed.extractedCurrency || null,
+        extractedRemark: parsed.extractedRemark || null,
         transactionId: parsed.transactionId || null,
         paymentDate: parsed.paymentDate || null,
         confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
-        reason: parsed.reason || "No reason provided by model",
+        reason: validationReason,
     };
 };
