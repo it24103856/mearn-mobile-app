@@ -16,6 +16,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Footer from "../components/Footer";
 import Header from "../components/Header";
 
 const { width } = Dimensions.get("window");
@@ -119,6 +120,8 @@ const PackagePage = () => {
               ))}
             </View>
           </View>
+
+          <Footer />
         </View>
 
       </ScrollView>

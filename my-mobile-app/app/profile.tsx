@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient'; // npx expo install expo-
 import { router } from 'expo-router';
 import { Edit3, Mail, MapPin, Phone } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
+import Footer from '../components/Footer';
 import { ActivityIndicator, Alert, Image, SafeAreaView, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Header from '../components/Header';
 
@@ -142,6 +143,8 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={{ height: 50 }} />
+
+                <Footer />
             </ScrollView>
         </SafeAreaView>
     );

@@ -3,6 +3,7 @@ import axios from "axios";
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from "react";
+import Footer from '../components/Footer';
 import { ActivityIndicator, Alert, Image, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { uploadFile } from '../lib/supabase';
 
@@ -173,6 +174,10 @@ export default function EditProfileScreen() {
           >
             {loading ? <ActivityIndicator color="white" /> : <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>Save Changes</Text>}
           </TouchableOpacity>
+        </View>
+
+        <View style={{ marginHorizontal: -20 }}>
+          <Footer />
         </View>
 
       </ScrollView>

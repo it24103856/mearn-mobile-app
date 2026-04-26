@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
+import Footer from '../components/Footer';
 
 const AdminPage = () => {
     const [user, setUser] = useState<any>(null);
@@ -61,6 +62,7 @@ const AdminDashboard = () => {
     const router = useRouter();
 
     const navItems = [
+        { label: 'Customer', icon: 'home-account', route: '/homePage' },
         { label: 'Contact', icon: 'phone', route: '/admin/adminContactPage' },
         { label: 'Messages', icon: 'email', route: '/admin/AdminMessages' },
         { label: 'Users', icon: 'account-group', route: '/admin/adminUserPage' },
@@ -126,6 +128,8 @@ const AdminDashboard = () => {
                         ))}
                     </View>
                 </View>
+
+                <Footer />
             </ScrollView>
         </View>
     );

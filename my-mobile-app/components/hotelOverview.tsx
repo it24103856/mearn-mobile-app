@@ -24,6 +24,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import Footer from './Footer';
 
 const { width } = Dimensions.get('window');
 
@@ -125,6 +126,8 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
                             <FoodCard name="Wagyu Steak" price="LKR 12,400" />
                         </View>
                     )}
+
+                    
                 </View>
             </ScrollView>
 

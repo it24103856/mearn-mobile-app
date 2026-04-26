@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import Footer from '../components/Footer';
 import Header from '../components/Header';
 
 const { width } = Dimensions.get("window");
@@ -174,6 +175,7 @@ class HotelScreen extends Component<{}, any> {
           renderItem={this.renderHotelCard}
           keyExtractor={item => item._id}
           ListHeaderComponent={this.renderHeader}
+          ListFooterComponent={<Footer />}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 30 }}
           // Android වල smooth scroll වීමට මෙය උපකාරී වේ

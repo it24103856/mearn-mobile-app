@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { useRouter } from 'expo-router';
 import { KeyRound, LayoutGrid, LogIn, UserPlus } from "lucide-react-native";
 import React from 'react';
@@ -61,6 +62,10 @@ export default function WelcomeScreen() {
           </TouchableOpacity>
           
 
+        </View>
+
+        <View style={{ marginHorizontal: -25 }}>
+          
         </View>
       </ScrollView>
     </SafeAreaView>

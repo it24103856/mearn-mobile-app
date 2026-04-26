@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import { Calendar, CreditCard, MapPin, MessageSquare, Star, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
+import Footer from '../components/Footer';
 import Header from '../components/Header';
 import {
   ActivityIndicator,
@@ -243,6 +244,10 @@ export default function MyBookings() {
             </View>
           ))
         )}
+
+        <View style={{ marginHorizontal: -20 }}>
+          <Footer />
+        </View>
       </ScrollView>
 
       {/* Review Modal */}

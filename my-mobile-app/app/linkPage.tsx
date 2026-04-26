@@ -3,6 +3,7 @@ import { ChevronLeft, Home, Info, PhoneCall, User, Car } from "lucide-react-nati
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Footer from '../components/Footer';
 import Header from "../components/Header";
 
 // Extend router types to include custom routes
@@ -172,6 +173,10 @@ export default function LinkPage() {
           </View>
           <Text style={styles.cardText}>Admin Page</Text>
         </TouchableOpacity>
+
+        <View style={{ marginHorizontal: -20 }}>
+          <Footer />
+        </View>
 
       </ScrollView>
     </SafeAreaView>

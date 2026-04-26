@@ -15,6 +15,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Footer from "../components/Footer";
 import Header from "../components/Header";
 // Interfaces for TypeScript
 interface Feedback {
@@ -245,6 +246,7 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
             <Text style={styles.emptyText}>No reviews yet.</Text>
           </View>
         }
+        ListFooterComponent={<Footer />}
         contentContainerStyle={{ paddingBottom: 30 }}
       />
     </SafeAreaView>

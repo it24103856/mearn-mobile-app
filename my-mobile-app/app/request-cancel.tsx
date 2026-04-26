@@ -14,6 +14,7 @@ import * as SecureStore from 'expo-secure-store';
 import axios from "axios";
 import { MessageSquare, Clock, ChevronDown, ChevronUp, CheckCircle } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
+import Footer from '../components/Footer';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -189,6 +190,10 @@ export default function MyInquiries() {
             <Text style={{ color: "#9CA3AF", fontStyle: "italic" }}>You haven't sent any messages yet.</Text>
           </View>
         )}
+
+        <View style={{ marginHorizontal: -24 }}>
+          <Footer />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

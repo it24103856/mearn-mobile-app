@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  Image,
   Platform,
   RefreshControl
 } from "react-native";
@@ -16,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import axios from "axios";
 import * as SecureStore from 'expo-secure-store';
+import Footer from '../components/Footer';
 import { 
   CheckCircle, 
   Clock, 
@@ -204,6 +206,10 @@ export default function MyPayments() {
             );
           })
         )}
+
+        <View style={{ marginHorizontal: -16 }}>
+          <Footer />
+        </View>
       </ScrollView>
 
       {/* --- PAYMENT SUMMARY MODAL --- */}
@@ -244,6 +250,21 @@ export default function MyPayments() {
                         <Text style={styles.detailValue}>{selectedPayment.paymentMethod?.replace('_', ' ').toUpperCase()}</Text>
                     </View>
                 </View>
+
+                {selectedPayment.paymentMethod === "bank_transfer" && (
+                  <View style={styles.receiptSection}>
+                    <Text style={styles.labelSmall}>BANK RECEIPT</Text>
+                    {selectedPayment.receiptUrl ? (
+                      <Image
+                        source={{ uri: selectedPayment.receiptUrl }}
+                        style={styles.receiptImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={styles.receiptMissingText}>No bank receipt uploaded.</Text>
+                    )}
+                  </View>
+                )}
 
                 {selectedPayment.metadata?.adminNotes && (
                    <View style={styles.notesBox}>
@@ -343,6 +364,17 @@ const styles = StyleSheet.create({
   summaryCurrency: { fontSize: 16, color: "#94a3b8" },
   detailCard: { flexDirection: "row", alignItems: "center", padding: 15, borderWidth: 1, borderColor: "#f1f5f9", borderRadius: 15, marginBottom: 10 },
   detailValue: { fontSize: 14, fontWeight: "700", color: "#334155" },
+  receiptSection: { marginTop: 6, marginBottom: 4 },
+  receiptImage: {
+    width: "100%",
+    height: 220,
+    borderRadius: 14,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+  },
+  receiptMissingText: { marginTop: 8, color: "#94a3b8", fontSize: 12, fontWeight: "600" },
   notesBox: { backgroundColor: "#fffbeb", padding: 15, borderRadius: 15, flexDirection: "row", gap: 10, marginTop: 10 },
   notesText: { flex: 1, fontSize: 12, color: "#92400e", fontWeight: "500" },
   

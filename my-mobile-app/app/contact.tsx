@@ -1,7 +1,6 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Image,
   ImageBackground,
   SafeAreaView,
@@ -66,18 +65,6 @@ export default function ContactScreen() {
         </View>
       </ScrollView>
 
-      {/* --- Floating Components (සැමවිටම ScrollView එකට පිටින්) --- */}
-      
-      {/* 1. TEST BUTTON - පරීක්ෂාවට පමණි */}
-      <View style={styles.testBtnWrapper}>
-          <TouchableOpacity 
-            style={styles.redBtn}
-            onPress={() => Alert.alert("Working", "Layout is stable!")}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>TEST</Text>
-          </TouchableOpacity>
-      </View>
-
       {/* 2. CONTACT FORM */}
       <ContactForm />
 
@@ -121,20 +108,4 @@ const styles = StyleSheet.create({
   infoText: { fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
   imageContainer: { alignItems: 'center', marginTop: 30 },
   circularImage: { width: 250, height: 250, borderRadius: 125, borderWidth: 5, borderColor: '#eee' },
-  
-  // Floating Button එක අතුරුදහන් වීම වැළැක්වීමට මෙම styles බලන්න
-  testBtnWrapper: {
-    position: 'absolute',
-    bottom: 120, // ContactForm එකට උඩින් තැබීමට
-    right: 20,
-    zIndex: 9999, // ඉතා ඉහළ අගයක්
-    elevation: 20, // Android සඳහා
-  },
-  redBtn: {
-    backgroundColor: 'red',
-    padding: 15,
-    borderRadius: 50,
-    minWidth: 60,
-    alignItems: 'center',
-  }
 });

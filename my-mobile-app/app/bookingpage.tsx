@@ -5,6 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from "jwt-decode";
 import { ArrowLeft, Bed, Calendar, ChevronLeft, MapPin } from "lucide-react-native";
 import { useEffect, useState } from "react";
+import Footer from "../components/Footer";
 import Header from "../components/Header";
 import {
   ActivityIndicator,
@@ -393,6 +394,8 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
           </View>
         )}
       </ScrollView>
+
+      
 
       {/* Footer */}
       <View style={styles.footer}>

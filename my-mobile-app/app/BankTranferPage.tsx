@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { ChevronLeft, CloudUpload, Hash } from 'lucide-react-native';
 import React, { useState } from 'react';
+import Footer from '../components/Footer';
 import { uploadFile } from '../lib/supabase';
 import {
     ActivityIndicator,
@@ -237,6 +238,8 @@ const BankTransferPage = () => {
       </View>
 
       <Text style={styles.footerText}>SECURE AI POWERED VERIFICATION SYSTEM</Text>
+
+      <Footer />
     </ScrollView>
   );
 };

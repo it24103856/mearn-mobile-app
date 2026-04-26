@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowRight, ChevronLeft, Clock, Globe, MapPin } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
+import Footer from './Footer';
 import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview'; // Map එක පෙන්වීමට මෙය install කරගත යුතුය
@@ -111,6 +112,8 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
                 />
             </View>
         </View>
+
+        <Footer />
 
       </ScrollView>
     </SafeAreaView>

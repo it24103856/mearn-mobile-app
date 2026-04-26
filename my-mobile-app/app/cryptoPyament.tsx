@@ -6,6 +6,7 @@ import {
   Send, Shield, TrendingUp, Zap
 } from 'lucide-react-native';
 import React, { useState } from 'react';
+import Footer from '../components/Footer';
 import Header from '../components/Header';
 import {
   ActivityIndicator,
@@ -47,8 +48,8 @@ const CryptoPayment = () => {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>Session Expired or Invalid Access</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>Go Back</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.errorBackBtn}>
+          <Text style={styles.errorBackBtnText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -221,6 +222,8 @@ const CryptoPayment = () => {
               <Text style={styles.badgeText}>VERIFIED</Text>
             </View>
           </View>
+
+          <Footer />
         </View>
       </View>
       </ScrollView>
@@ -262,8 +265,8 @@ const styles = StyleSheet.create({
   badge:              { flexDirection: 'row', alignItems: 'center', gap: 4 },
   badgeText:          { fontSize: 10, fontWeight: 'bold', color: '#64748b' },
   errorText:          { color: '#ef4444', fontWeight: 'bold', fontSize: 18 },
-  backBtn:            { marginTop: 16, backgroundColor: '#0f172a', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  backBtnText:        { color: '#fff', fontWeight: 'bold' },
+  errorBackBtn:       { marginTop: 16, backgroundColor: '#0f172a', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  errorBackBtnText:   { color: '#fff', fontWeight: 'bold' },
 });
 
 export default CryptoPayment;

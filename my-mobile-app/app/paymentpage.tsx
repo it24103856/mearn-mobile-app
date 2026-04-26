@@ -20,6 +20,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import Footer from '../components/Footer';
 
 const PaymentMainPage = () => {
     const [selectedMethod, setSelectedMethod] = useState('');
@@ -170,6 +171,10 @@ const PaymentMainPage = () => {
                 <View style={styles.secureBox}>
                     <ShieldCheck size={16} color="#10B981" />
                     <Text style={styles.secureText}>100% SECURE & ENCRYPTED</Text>
+                </View>
+
+                <View style={{ marginHorizontal: -20 }}>
+                    <Footer />
                 </View>
 
             </ScrollView>

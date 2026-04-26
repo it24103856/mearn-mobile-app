@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from 'expo-web-browser';
 import { Lock, Mail } from "lucide-react-native";
 import React, { useState } from "react";
+import Footer from "../components/Footer";
 import { ActivityIndicator, Alert, Image, ImageBackground, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -58,7 +59,11 @@ export default function LoginScreen() {
           await saveToken(res.data.token, res.data.role);
           
           Alert.alert("Welcome! 🎉", "Google login successful");
-          router.replace("/homePage");
+          if (res.data.role === "admin") {
+            router.replace("/adminPage");
+          } else {
+            router.replace("/homePage");
+          }
         } catch (backendErr: any) {
           Alert.alert("Server Error", backendErr.response?.data?.message || "Failed to sync with server");
         }
@@ -83,7 +88,7 @@ export default function LoginScreen() {
       Alert.alert("Welcome back! ✨", "Ready for your next adventure?");
       
       if (res.data.role === "admin") {
-        router.replace("/homePage");
+        router.replace("/adminPage");
       } else {
         router.replace("/homePage");
       }
@@ -207,6 +212,10 @@ export default function LoginScreen() {
                 </Text>
               </TouchableOpacity>
 
+            </View>
+
+            <View style={{ marginHorizontal: -25 }}>
+              <Footer />
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

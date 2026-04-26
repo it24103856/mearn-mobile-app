@@ -1,20 +1,41 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { useRouter } from "expo-router";
-import { Menu, X } from "lucide-react-native";
+import { LayoutDashboard, Menu, X } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { Image, Modal, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import UserProfile from "./userProfile";
 
 export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const token = await AsyncStorage.getItem("token");
+        let token: string | null = null;
+        let role: string | null = null;
+
+        if (Platform.OS === 'web') {
+          token = typeof localStorage !== 'undefined' ? localStorage.getItem("token") : null;
+          role = typeof localStorage !== 'undefined' ? localStorage.getItem("role") : null;
+        } else {
+          token = await SecureStore.getItemAsync("token");
+          role = await SecureStore.getItemAsync("role");
+
+          if (!token) {
+            token = await AsyncStorage.getItem("token");
+          }
+
+          if (!role) {
+            role = await AsyncStorage.getItem("role");
+          }
+        }
+
         setIsLoggedIn(!!token);
+        setIsAdmin(role === 'admin');
       } catch (error) {
         console.error("Error checking token:", error);
       }
@@ -50,6 +71,15 @@ export default function Header() {
 
         {/* 2. Right Section */}
         <View style={styles.rightSection}>
+          {isLoggedIn && isAdmin && (
+            <TouchableOpacity
+              style={styles.adminIconBtn}
+              onPress={() => router.push('/adminPage')}
+            >
+              <LayoutDashboard color="white" size={18} />
+            </TouchableOpacity>
+          )}
+
           {isLoggedIn ? (
             <UserProfile />
           ) : (
@@ -84,6 +114,9 @@ export default function Header() {
             <TouchableOpacity onPress={() => navigateTo("/destination")}><Text style={styles.linkText}>Destinations</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigateTo("/packages")}><Text style={styles.linkText}>Packages</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigateTo("/feedback")}><Text style={styles.linkText}>Feedback</Text></TouchableOpacity>
+            {isLoggedIn && isAdmin && (
+              <TouchableOpacity onPress={() => navigateTo("/adminPage")}><Text style={styles.linkText}>Admin Dashboard</Text></TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -109,6 +142,14 @@ const styles = StyleSheet.create({
   logoContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logoText: { color: 'white', fontSize: 20, fontWeight: 'bold', letterSpacing: 0.5 },
   rightSection: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  adminIconBtn: {
+    backgroundColor: '#4f46e5',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   menuIcon: { padding: 5 },
   loginBtn: { backgroundColor: '#06b6d4', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
   loginBtnText: { color: 'white', fontWeight: 'bold', fontSize: 14 },

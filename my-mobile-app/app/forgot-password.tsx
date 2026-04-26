@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Lock, Mail, ShieldCheck } from "lucide-react-native";
 import React, { useState } from 'react';
+import Footer from '../components/Footer';
 import { ActivityIndicator, Alert, Image, ImageBackground, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -167,6 +168,10 @@ export default function ForgotPasswordScreen() {
                 <Text style={{ color: '#22d3ee', fontWeight: 'bold' }}>Back to Sign In</Text>
               </TouchableOpacity>
 
+            </View>
+
+            <View style={{ marginHorizontal: -25 }}>
+              <Footer />
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

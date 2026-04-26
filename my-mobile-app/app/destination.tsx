@@ -2,6 +2,7 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import { ArrowRight, Search } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
+import Footer from "../components/Footer";
 import Header from "../components/Header";
 import {
   ActivityIndicator,
@@ -132,6 +133,11 @@ const DestinationPage = () => {
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
+          ListFooterComponent={
+            <View style={{ marginHorizontal: -15 }}>
+              <Footer />
+            </View>
+          }
           numColumns={2}
           contentContainerStyle={styles.listPadding}
           columnWrapperStyle={styles.columnWrapper}

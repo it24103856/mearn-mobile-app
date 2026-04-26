@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: 'view-dashboard', route: '/adminPage' },
+  { label: 'Customer', icon: 'home-account', route: '/homePage' },
   { label: 'Contact', icon: 'phone', route: '/admin/adminContactPage' },
   { label: 'Messages', icon: 'email', route: '/admin/AdminMessages' },
   { label: 'Users', icon: 'account-group', route: '/admin/adminUserPage' },

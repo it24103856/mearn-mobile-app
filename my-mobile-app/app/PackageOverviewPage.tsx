@@ -6,6 +6,7 @@ import {
     MapPin
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
+import Footer from '../components/Footer';
 import {
     ActivityIndicator,
     Dimensions,
@@ -170,6 +171,8 @@ const PackageOverviewPage = () => {
                     )}
 
                 </View>
+
+                
             </ScrollView>
 
             {/* 4. FOOTER */}

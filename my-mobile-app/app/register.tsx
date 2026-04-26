@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { Camera, Mail, Lock, Phone, MapPin } from 'lucide-react-native';
+import Footer from '../components/Footer';
 
 // Supabase upload function එක
 import { uploadFile } from '../lib/supabase';
@@ -170,6 +171,10 @@ export default function RegisterScreen() {
                                     Already have an account? <Text style={{ color: '#22d3ee', fontWeight: 'bold' }}>Login</Text>
                                 </Text>
                             </TouchableOpacity>
+                        </View>
+
+                        <View style={{ marginHorizontal: -25 }}>
+                            <Footer />
                         </View>
                     </ScrollView>
                 </KeyboardAvoidingView>
