@@ -10,7 +10,7 @@ import {
   Platform,
   UIManager
 } from "react-native";
-import * as SecureStore from 'expo-secure-store';
+import { getAuthToken } from '../lib/auth';
 import axios from "axios";
 import { MessageSquare, Clock, ChevronDown, ChevronUp, CheckCircle } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -18,10 +18,7 @@ import Footer from '../components/Footer';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-const getToken = async () => {
-  if (Platform.OS === "web") return localStorage.getItem("token");
-  return await SecureStore.getItemAsync("token");
-};
+// Use centralized token helper
 
 interface Message {
   _id: string;
@@ -48,7 +45,7 @@ export default function MyInquiries() {
 
   const fetchUserMessages = async () => {
     try {
-      const token = await getToken();
+      const token = await getAuthToken();
       const res = await axios.get(`${API_URL}/contact/my-messages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -71,7 +68,7 @@ export default function MyInquiries() {
       
       if (msg.adminReply && !msg.isViewedByCustomer) {
         try {
-          const token = await getToken();
+          const token = await getAuthToken();
           await axios.put(`${API_URL}/contact/mark-viewed/${msg._id}`, {}, {
             headers: { Authorization: `Bearer ${token}` }
           });

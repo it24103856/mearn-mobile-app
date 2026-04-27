@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { VictoryPie, VictoryChart, VictoryBar, VictoryAxis, VictoryArea, VictoryTheme } from 'victory';
+import Svg, { Circle } from 'react-native-svg';
 import { getAuthHeaders } from '../../lib/auth';
 
 const { width } = Dimensions.get('window');
@@ -30,6 +30,23 @@ const formatShortId = (value: any, size = 8) => {
     return text.length > size ? text.slice(-size) : text;
 };
 
+const STATUS_FILTERS = [
+    { label: 'All', value: 'all' },
+    { label: 'Pending', value: 'pending' },
+    { label: 'Processing', value: 'processing' },
+    { label: 'Completed', value: 'completed' },
+    { label: 'Failed', value: 'failed' },
+    { label: 'Refunded', value: 'refunded' },
+    { label: 'Cancel Requested', value: 'cancel_requested' },
+];
+
+const METHOD_FILTERS = [
+    { label: 'All Methods', value: 'all' },
+    { label: 'Card', value: 'card' },
+    { label: 'Bank Transfer', value: 'bank_transfer' },
+    { label: 'Crypto', value: 'crypto' },
+];
+
 const AdminPaymentPage = () => {
     const [payments, setPayments] = useState<any[]>([]);
     const [filteredPayments, setFilteredPayments] = useState<any[]>([]);
@@ -40,14 +57,14 @@ const AdminPaymentPage = () => {
     const [loading, setLoading] = useState(true);
     const [statusLoading, setStatusLoading] = useState(false);
     const [statusConfirmModal, setStatusConfirmModal] = useState(false);
-    const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ id: string; status: string } | null>(null);
+    const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ id: string; status: string; bookingId?: string | null } | null>(null);
 
     const [cancelModal, setCancelModal] = useState(false);
     const [cancelPayment, setCancelPayment] = useState<any>(null);
     const [cancelLoading, setCancelLoading] = useState(false);
 
     const [deleteModal, setDeleteModal] = useState(false);
-    const [deletePayment, setDeletePayment] = useState<any>(null);
+    const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [deleteSuccess, setDeleteSuccess] = useState(false);
 
@@ -109,6 +126,13 @@ const AdminPaymentPage = () => {
         [stats.statusData]
     );
 
+    const maxRevenueAmount = Math.max(...stats.revenueData.map((item: any) => Number(item.amount) || 0), 1);
+    const totalStatusCount = pieData.reduce((sum: number, item: any) => sum + (Number(item.y) || 0), 0);
+    const donutSize = 220;
+    const donutStroke = 26;
+    const donutRadius = (donutSize - donutStroke) / 2;
+    const donutCircumference = 2 * Math.PI * donutRadius;
+
     // Fetch Payments
     const fetchPayments = async () => {
         setLoading(true);
@@ -136,11 +160,21 @@ const AdminPaymentPage = () => {
     }, [filterStatus, filterMethod, payments]);
 
     // Status Update
-    const updatePaymentStatusNow = async (id: string, status: string) => {
+    const updatePaymentStatusNow = async (id: string, status: string, bookingId?: string | null) => {
         try {
             setStatusLoading(true);
             const headers = await getAuthHeaders();
             await axios.put(`${API_URL}/payments/admin/update-status/${id}`, { status: status.toLowerCase() }, { headers });
+            if (status.toLowerCase() === 'completed' && bookingId) {
+                await axios.put(
+                    `${API_URL}/bookings/update-status/${bookingId}`,
+                    { status: 'Confirmed' },
+                    { headers }
+                );
+            }
+            setPayments(prev => prev.map(payment => (
+                payment._id === id ? { ...payment, paymentStatus: status.toLowerCase() } : payment
+            )));
             Toast.show({ type: 'success', text1: 'Updated successfully!' });
             await fetchPayments();
             setIsModalOpen(false);
@@ -154,16 +188,20 @@ const AdminPaymentPage = () => {
         }
     };
 
-    const handleStatusUpdate = (id: string, status: string) => {
-        setPendingStatusUpdate({ id, status });
+    const handleStatusUpdate = (id: string, status: string, bookingId?: string | null) => {
+        setPendingStatusUpdate({ id, status, bookingId });
+        setIsModalOpen(false);
         setStatusConfirmModal(true);
     };
 
-    const handleConfirmStatusYes = async () => {
-        if (!pendingStatusUpdate) return;
-        await updatePaymentStatusNow(pendingStatusUpdate.id, pendingStatusUpdate.status);
+    const handleConfirmStatusYes = async (pendingUpdate?: { id: string; status: string; bookingId?: string | null } | null) => {
+        const targetUpdate = pendingUpdate || pendingStatusUpdate;
+        if (!targetUpdate) return;
+
+        await updatePaymentStatusNow(targetUpdate.id, targetUpdate.status, targetUpdate.bookingId);
         setStatusConfirmModal(false);
         setPendingStatusUpdate(null);
+        setSelectedPayment(null);
     };
 
     const handleConfirmStatusNo = () => {
@@ -202,15 +240,23 @@ const AdminPaymentPage = () => {
     };
 
     // Delete Payment
-    const handleDeletePayment = async () => {
+    const handleDeletePayment = async (paymentId?: string | null) => {
+        const targetPaymentId = paymentId || deletePaymentId;
+
+        if (!targetPaymentId) {
+            Toast.show({ type: 'error', text1: 'Payment not found for delete action' });
+            return;
+        }
+
         setDeleteLoading(true);
         try {
             const headers = await getAuthHeaders();
-            await axios.delete(`${API_URL}/payments/admin/delete/${deletePayment._id}`, { headers });
+            await axios.delete(`${API_URL}/payments/admin/delete/${targetPaymentId}`, { headers });
             Toast.show({ type: 'success', text1: 'Payment deleted successfully' });
             setDeleteModal(false);
             setDeleteSuccess(true);
-            setDeletePayment(null);
+            setDeletePaymentId(null);
+            setSelectedPayment(null);
             setIsModalOpen(false);
             fetchPayments();
         } catch (err: any) {
@@ -290,22 +336,87 @@ const AdminPaymentPage = () => {
             {/* Charts */}
             <View style={styles.chartContainer}>
                 <Text style={styles.sectionTitle}>Revenue Growth</Text>
-                <VictoryChart theme={VictoryTheme.material} height={280} width={Math.max(width - 48, 320)}>
-                    <VictoryArea data={stats.revenueData} x="month" y="amount" style={{ data: { fill: '#6366F1', opacity: 0.6 } }} />
-                </VictoryChart>
+                <View style={styles.revenueList}>
+                    {stats.revenueData.map((item: any) => (
+                        <View key={item.month} style={styles.revenueRow}>
+                            <Text style={styles.revenueMonth}>{item.month}</Text>
+                            <View style={styles.revenueTrack}>
+                                <View
+                                    style={[
+                                        styles.revenueFill,
+                                        { width: `${((Number(item.amount) || 0) / maxRevenueAmount) * 100}%` }
+                                    ]}
+                                />
+                            </View>
+                            <Text style={styles.revenueAmount}>Rs. {(Number(item.amount) || 0).toLocaleString()}</Text>
+                        </View>
+                    ))}
+                </View>
             </View>
 
             <View style={styles.chartContainer}>
                 <Text style={styles.sectionTitle}>Status Ratio</Text>
                 {pieData.length > 0 ? (
-                    <VictoryPie
-                        data={pieData}
-                        colorScale={pieData.map((d: any) => d.color)}
-                        radius={110}
-                        innerRadius={55}
-                        labelRadius={80}
-                        style={{ labels: { fontSize: 10, fill: '#64748b', fontWeight: 700 } }}
-                    />
+                    <View style={styles.statusChartWrap}>
+                        <View style={styles.donutWrap}>
+                            <Svg width={donutSize} height={donutSize}>
+                                <Circle
+                                    cx={donutSize / 2}
+                                    cy={donutSize / 2}
+                                    r={donutRadius}
+                                    stroke="#E2E8F0"
+                                    strokeWidth={donutStroke}
+                                    fill="none"
+                                />
+
+                                {(() => {
+                                    let cumulative = 0;
+
+                                    return pieData.map((item: any) => {
+                                        const value = Number(item.y) || 0;
+                                        const fraction = totalStatusCount ? value / totalStatusCount : 0;
+                                        const dash = fraction * donutCircumference;
+                                        const startAngle = -90 + cumulative * 360;
+                                        cumulative += fraction;
+
+                                        return (
+                                            <Circle
+                                                key={item.x}
+                                                cx={donutSize / 2}
+                                                cy={donutSize / 2}
+                                                r={donutRadius}
+                                                stroke={item.color}
+                                                strokeWidth={donutStroke}
+                                                fill="none"
+                                                strokeDasharray={`${dash} ${donutCircumference}`}
+                                                transform={`rotate(${startAngle} ${donutSize / 2} ${donutSize / 2})`}
+                                            />
+                                        );
+                                    });
+                                })()}
+                            </Svg>
+
+                            <View style={styles.donutCenterLabel}>
+                                <Text style={styles.donutCenterValue}>{totalStatusCount}</Text>
+                                <Text style={styles.donutCenterText}>Payments</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.statusList}>
+                            {pieData.map((item: any) => (
+                                <View key={item.x} style={styles.statusRow}>
+                                    <View style={styles.statusMeta}>
+                                        <View style={[styles.statusDot, { backgroundColor: item.color }]} />
+                                        <Text style={styles.statusLabel}>{item.x}</Text>
+                                    </View>
+                                    <Text style={styles.statusPercent}>
+                                        {totalStatusCount ? `${Math.round((item.y / totalStatusCount) * 100)}%` : '0%'}
+                                    </Text>
+                                    <Text style={styles.statusCount}>{item.y}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
                 ) : (
                     <View style={styles.noChartData}>
                         <Text style={styles.noChartText}>No status data available</Text>
@@ -315,9 +426,54 @@ const AdminPaymentPage = () => {
 
             {/* Filters */}
             <View style={styles.filterContainer}>
-                <Text>Filter:</Text>
-                <TouchableOpacity style={styles.filterBtn} onPress={() => { /* Add picker logic */ }}>
-                    <Text>{filterStatus}</Text>
+                <View style={styles.filterBlock}>
+                    <Text style={styles.filterLabel}>Payment Status</Text>
+                    <View style={styles.filterWrap}>
+                        {STATUS_FILTERS.map((item) => {
+                            const active = filterStatus === item.value;
+                            return (
+                                <TouchableOpacity
+                                    key={item.value}
+                                    style={[styles.filterChip, active && styles.filterChipActive]}
+                                    onPress={() => setFilterStatus(item.value)}
+                                >
+                                    <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                                        {item.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
+
+                <View style={styles.filterBlock}>
+                    <Text style={styles.filterLabel}>Payment Method</Text>
+                    <View style={styles.filterWrap}>
+                        {METHOD_FILTERS.map((item) => {
+                            const active = filterMethod === item.value;
+                            return (
+                                <TouchableOpacity
+                                    key={item.value}
+                                    style={[styles.filterChip, active && styles.filterChipActive]}
+                                    onPress={() => setFilterMethod(item.value)}
+                                >
+                                    <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                                        {item.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
+
+                <TouchableOpacity
+                    style={styles.clearFilterBtn}
+                    onPress={() => {
+                        setFilterStatus('all');
+                        setFilterMethod('all');
+                    }}
+                >
+                    <Text style={styles.clearFilterText}>Clear Filters</Text>
                 </TouchableOpacity>
             </View>
 
@@ -395,7 +551,7 @@ const AdminPaymentPage = () => {
                                         <TouchableOpacity
                                             style={[styles.actionBtn, styles.confirmBtn]}
                                             disabled={statusLoading}
-                                            onPress={() => handleStatusUpdate(selectedPayment._id, 'completed')}
+                                            onPress={() => handleStatusUpdate(selectedPayment._id, 'completed', selectedPayment.bookingId)}
                                         >
                                             <Text style={styles.actionBtnText}>{statusLoading ? 'Updating...' : 'Confirm Payment'}</Text>
                                         </TouchableOpacity>
@@ -423,7 +579,8 @@ const AdminPaymentPage = () => {
                                                 handleCancelDecision('completed', selectedPayment._id);
                                                 return;
                                             }
-                                            setDeletePayment(selectedPayment);
+                                            setDeletePaymentId(selectedPayment?._id || null);
+                                            setIsModalOpen(false);
                                             setDeleteModal(true);
                                         }}
                                     >
@@ -464,7 +621,7 @@ const AdminPaymentPage = () => {
                             <TouchableOpacity style={[styles.miniBtn, styles.miniCancel]} onPress={() => setDeleteModal(false)}>
                                 <Text style={styles.miniCancelText}>Cancel</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.miniBtn, styles.miniDanger]} onPress={handleDeletePayment}>
+                            <TouchableOpacity style={[styles.miniBtn, styles.miniDanger]} onPress={() => handleDeletePayment(deletePaymentId)} disabled={deleteLoading}>
                                 <Text style={styles.miniConfirmText}>{deleteLoading ? 'Deleting...' : 'Delete'}</Text>
                             </TouchableOpacity>
                         </View>
@@ -481,7 +638,7 @@ const AdminPaymentPage = () => {
                             <TouchableOpacity style={[styles.miniBtn, styles.miniCancel]} onPress={handleConfirmStatusNo} disabled={statusLoading}>
                                 <Text style={styles.miniCancelText}>No</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.miniBtn, styles.miniConfirm]} onPress={handleConfirmStatusYes} disabled={statusLoading}>
+                            <TouchableOpacity style={[styles.miniBtn, styles.miniConfirm]} onPress={() => handleConfirmStatusYes(pendingStatusUpdate)} disabled={statusLoading}>
                                 <Text style={styles.miniConfirmText}>{statusLoading ? 'Saving...' : 'Yes'}</Text>
                             </TouchableOpacity>
                         </View>
@@ -507,8 +664,38 @@ const styles = StyleSheet.create({
     statValue: { fontSize: 20, fontWeight: 'bold', marginTop: 4 },
     chartContainer: { backgroundColor: 'white', padding: 16, borderRadius: 20, marginBottom: 16 },
     sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: '#374151' },
-    filterContainer: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 },
-    filterBtn: { backgroundColor: 'white', padding: 10, borderRadius: 999, borderWidth: 1, borderColor: '#e5e7eb' },
+    revenueList: { gap: 10 },
+    revenueRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    revenueMonth: { width: 28, color: '#475569', fontWeight: '700', fontSize: 12 },
+    revenueTrack: { flex: 1, height: 10, borderRadius: 999, backgroundColor: '#E2E8F0', overflow: 'hidden' },
+    revenueFill: { height: '100%', borderRadius: 999, backgroundColor: '#6366F1' },
+    revenueAmount: { width: 96, textAlign: 'right', color: '#334155', fontWeight: '700', fontSize: 11 },
+    statusChartWrap: { alignItems: 'center', gap: 14 },
+    donutWrap: { alignItems: 'center', justifyContent: 'center' },
+    donutCenterLabel: {
+        position: 'absolute',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    donutCenterValue: { color: '#0F172A', fontSize: 24, fontWeight: '900' },
+    donutCenterText: { color: '#64748B', fontSize: 12, fontWeight: '700' },
+    statusList: { gap: 10, width: '100%' },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    statusMeta: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    statusDot: { width: 10, height: 10, borderRadius: 999 },
+    statusLabel: { color: '#334155', fontWeight: '700', fontSize: 12 },
+    statusPercent: { width: 44, textAlign: 'right', color: '#64748B', fontWeight: '700', fontSize: 11 },
+    statusCount: { width: 24, textAlign: 'right', color: '#334155', fontWeight: '700', fontSize: 12 },
+    filterContainer: { gap: 14, marginBottom: 12 },
+    filterBlock: { gap: 10 },
+    filterLabel: { fontSize: 12, fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: 0.8 },
+    filterWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    filterChip: { backgroundColor: 'white', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: '#E2E8F0' },
+    filterChipActive: { backgroundColor: '#6366F1', borderColor: '#6366F1' },
+    filterChipText: { color: '#475569', fontWeight: '700', fontSize: 12 },
+    filterChipTextActive: { color: 'white' },
+    clearFilterBtn: { alignSelf: 'flex-start', backgroundColor: '#0F172A', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999 },
+    clearFilterText: { color: 'white', fontWeight: '800', fontSize: 12 },
     paymentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'white', padding: 16, borderRadius: 16, marginBottom: 10 },
     paymentIdWrap: { flex: 1, marginRight: 10 },
     paymentId: { fontWeight: 'bold' },

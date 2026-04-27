@@ -23,9 +23,12 @@ export const protect = (req, res, next) => {
 
 export const isAdmin = (req, res, next) => {
     // Check if isAdmin is true in req.user
+    console.log('🔐 Checking admin access for user:', req.user);
     if (req.user && req.user.isAdmin === true) {
+        console.log('✅ Admin access granted');
         next();
     } else {
-        res.status(403).json({ message: "ඔබ Admin කෙනෙකු නොවේ! ප්‍රවේශය තහනම්." });
+        console.log('❌ Admin access denied - user is not admin');
+        res.status(403).json({ message: "You are not an admin! Access denied.", success: false });
     }
 };

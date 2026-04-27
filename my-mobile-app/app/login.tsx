@@ -215,7 +215,6 @@ export default function LoginScreen() {
             </View>
 
             <View style={{ marginHorizontal: -25 }}>
-              <Footer />
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

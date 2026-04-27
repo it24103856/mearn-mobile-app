@@ -1,7 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as SecureStore from 'expo-secure-store';
+import { getAuthToken } from '../lib/auth';
 import { jwtDecode } from "jwt-decode";
 import { ArrowLeft, Bed, Calendar, ChevronLeft, MapPin } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -27,16 +27,7 @@ interface Room {
   finalPrice: number;
 }
 
-// ─── FIX: Platform-aware token helper ───────────────────────────────────────
-// expo-secure-store works only on iOS/Android.
-// On web, fall back to localStorage.
-const getToken = async (): Promise<string | null> => {
-  if (Platform.OS === "web") {
-    return localStorage.getItem("token");
-  }
-  return await SecureStore.getItemAsync("token");
-};
-// ────────────────────────────────────────────────────────────────────────────
+// Use centralized auth helper
 
 export default function TravelBookingUI() {
   const { id, hotelId } = useLocalSearchParams<{ id?: string; hotelId?: string }>();
@@ -143,8 +134,8 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
   const handleBookingSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // ─── FIX: use platform-aware helper instead of SecureStore directly ───
-      const token = await getToken();
+      // Use centralized token helper
+      const token = await getAuthToken();
 
       if (!token) {
         Alert.alert(

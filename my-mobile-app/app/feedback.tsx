@@ -1,5 +1,5 @@
 import axios from "axios";
-import * as SecureStore from 'expo-secure-store';
+import { getAuthToken } from '../lib/auth';
 import { Car, Globe, MessageCircle, Send, Star, Trash2, UserCheck } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
@@ -44,19 +44,12 @@ export default function CustomerFeedback() {
 
   // Backend URL - Change this to your actual backend IP or URL
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;
-  // Helper to get token based on platform
-  const getToken = async () => {
-    if (Platform.OS === 'web') {
-      return localStorage.getItem("token");
-    } else {
-      return await SecureStore.getItemAsync("token");
-    }
-  };
+  // Use centralized token helper
 
   const fetchMyFeedbacks = async () => {
     setIsFetching(true);
     try {
-      const token = await getToken();
+      const token = await getAuthToken();
       if (!token) {
         console.warn("No authentication token found.");
         setIsFetching(false);
@@ -89,7 +82,7 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
 
     setIsLoading(true);
     try {
-      const token = await getToken();
+      const token = await getAuthToken();
       const config = { headers: { Authorization: `Bearer ${token}` } };
       await axios.post(`${backendUrl}/feedback/create`, formData, config);
       
@@ -113,7 +106,7 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
   const handleDelete = async (id: string) => {
     const performDelete = async () => {
         try {
-          const token = await getToken();
+          const token = await getAuthToken();
           await axios.delete(`${backendUrl}/feedback/delete/${id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });

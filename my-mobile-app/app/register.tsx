@@ -174,7 +174,6 @@ export default function RegisterScreen() {
                         </View>
 
                         <View style={{ marginHorizontal: -25 }}>
-                            <Footer />
                         </View>
                     </ScrollView>
                 </KeyboardAvoidingView>

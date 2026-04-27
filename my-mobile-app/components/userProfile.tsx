@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { ChevronDown, Key, LogOut, Package, User as UserIcon } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -13,9 +14,35 @@ export default function UserProfile() {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
+    const getStoredToken = useCallback(async () => {
+        if (Platform.OS === 'web') {
+            return typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+        }
+
+        const secureToken = await SecureStore.getItemAsync('token');
+        if (secureToken) return secureToken;
+
+        return AsyncStorage.getItem('token');
+    }, []);
+
+    const clearStoredAuth = useCallback(async () => {
+        if (Platform.OS === 'web') {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+            }
+            return;
+        }
+
+        await SecureStore.deleteItemAsync('token');
+        await SecureStore.deleteItemAsync('role');
+        await AsyncStorage.removeItem('token');
+        await AsyncStorage.removeItem('role');
+    }, []);
+
     const fetchUserData = useCallback(async () => {
         try {
-            const token = await AsyncStorage.getItem("token");
+            const token = await getStoredToken();
             if (token) {
                 // සටහන: ඔබ ලබා දුන් දත්ත අනුව API එකෙන් User Array එකක් හෝ Object එකක් ලැබිය හැක
                 const response = await axios.get(`${backendUrl}/users/`, {
@@ -26,20 +53,25 @@ export default function UserProfile() {
                 // සාමාන්‍යයෙන් Object එකක් නම් response.data කෙලින්ම ගත හැක
                 setUser(Array.isArray(response.data) ? response.data[0] : response.data);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("User Profile Fetch Error:", err);
+
+            if (err?.response?.status === 401) {
+                await clearStoredAuth();
+            }
+
             setUser(null);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [clearStoredAuth, getStoredToken]);
 
     useEffect(() => {
         fetchUserData();
     }, [fetchUserData]);
 
     const handleLogout = async () => {
-        await AsyncStorage.removeItem("token");
+        await clearStoredAuth();
         setIsOpen(false);
         router.replace("/login"); 
     };
@@ -48,7 +80,19 @@ export default function UserProfile() {
         return <ActivityIndicator size="small" color="#22d3ee" />;
     }
 
-    if (!user) return null;
+    if (!user) {
+        return (
+            <TouchableOpacity
+                onPress={() => router.push('/login')}
+                style={styles.triggerButton}
+            >
+                <View style={styles.fallbackAvatar}>
+                    <UserIcon size={16} color="white" />
+                </View>
+                <ChevronDown size={14} color="white" />
+            </TouchableOpacity>
+        );
+    }
 
     // --- පින්තූරය පෙන්වීමේ තර්කය (Image Logic) ---
     // ඔබ ලබා දුන් User Object එකේ image: "https://example.com/..." ලෙස ඇති නිසා 
@@ -156,6 +200,16 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.2)' 
     },
     imageWrapper: { position: 'relative' },
+    fallbackAvatar: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        borderWidth: 1.5,
+        borderColor: '#22d3ee',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
     profileThumbnail: { 
         width: 34, 
         height: 34, 

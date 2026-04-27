@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import axios from "axios";
-import * as SecureStore from 'expo-secure-store';
+import { getAuthToken } from '../lib/auth';
 import Footer from '../components/Footer';
 import { 
   CheckCircle, 
@@ -34,11 +34,7 @@ import {
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-// Helper to get token (consistent with your previous code)
-const getToken = async () => {
-  if (Platform.OS === "web") return localStorage.getItem("token");
-  return await SecureStore.getItemAsync("token");
-};
+// Use centralized token helper
 
 export default function MyPayments() {
   const router = useRouter();
@@ -54,7 +50,7 @@ export default function MyPayments() {
 
   const fetchPayments = async () => {
     try {
-      const token = await getToken();
+      const token = await getAuthToken();
       const { data } = await axios.get(`${API_URL}/payments/my-payments`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -78,7 +74,7 @@ export default function MyPayments() {
     if (!cancelTarget) return;
     setCancelLoading(true);
     try {
-      const token = await getToken();
+      const token = await getAuthToken();
       const { data } = await axios.post(
         `${API_URL}/payments/request-cancel`,
         { paymentId: cancelTarget._id, reason: cancelReason || "Customer requested cancellation." },
@@ -127,6 +123,9 @@ export default function MyPayments() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Transactions</Text>
         <Text style={styles.headerSubtitle}>Keep track of your bookings and payment status</Text>
       </View>
@@ -324,6 +323,15 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 10, color: "#64748b", fontWeight: "500" },
   header: { padding: 24, backgroundColor: "white", borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
+  backButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#0f172a',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    marginBottom: 14,
+  },
+  backButtonText: { color: 'white', fontWeight: '800', fontSize: 12 },
   headerTitle: { fontSize: 28, fontWeight: "900", color: "#1e293b" },
   headerSubtitle: { fontSize: 13, color: "#64748b", marginTop: 4 },
   scrollContent: { padding: 16 },

@@ -1,6 +1,7 @@
 import Payment from "../models/Payment.js";
 import Booking from "../models/Booking.js";
 import { analyzeReceiptWithGemini } from "../services/geminiReceiptService.js";
+import mongoose from "mongoose";
 
 
 export const createManualPayment = async (req, res) => {
@@ -79,7 +80,7 @@ export const createManualPayment = async (req, res) => {
           newPayment.paymentStatus = "completed";
           aiNote = "✅ AI auto-verified: Receipt valid and amount matches. Payment approved.";
           // Also update booking status to confirmed
-          await Booking.findByIdAndUpdate(bookingId, { bookingStatus: "confirmed" });
+          await Booking.findByIdAndUpdate(bookingId, { status: "Confirmed" });
         } else {
           // Verification failed – keep status as "processing" for manual review
           aiNote = `⚠️ AI could not auto-verify. Reason: ${aiVerificationResult.reason || "Amount mismatch or invalid receipt"}. Manual review required.`;
@@ -144,21 +145,46 @@ export const getAllPendingPayments = async (req, res) => {
 
 export const updatePaymentStatus = async (req, res) => {
     try {
+        console.log('📝 updatePaymentStatus called with:', { params: req.params, body: req.body, user: req.user });
         const { paymentId } = req.params;
         const { status } = req.body;
 
-        const payment = await Payment.findById(paymentId);
-        if (!payment) return res.status(404).json({ success: false, message: "Payment not found" });
+        if (!paymentId || !status) {
+            return res.status(400).json({ success: false, message: "Payment ID and status are required" });
+        }
 
+        const payment = await Payment.findById(paymentId);
+        if (!payment) {
+            console.log('❌ Payment not found:', paymentId);
+            return res.status(404).json({ success: false, message: "Payment not found" });
+        }
+
+        console.log('✅ Found payment, updating status from', payment.paymentStatus, 'to', status);
         payment.paymentStatus = status;
         await payment.save();
 
-        if (status === "completed") {
-            await Booking.findByIdAndUpdate(payment.bookingId, { bookingStatus: "confirmed" });
+        const bookingId = payment.bookingId;
+        const shouldSyncBooking = bookingId && mongoose.Types.ObjectId.isValid(bookingId);
+
+        if (shouldSyncBooking) {
+            try {
+                if (status === "completed") {
+                    console.log('🔔 Updating booking status to Confirmed for booking:', bookingId);
+                    const bookingUpdate = await Booking.findByIdAndUpdate(bookingId, { status: "Confirmed" }, { new: true });
+                    console.log('✅ Booking updated:', bookingUpdate);
+                } else if (status === "refunded" || status === "cancel_requested") {
+                    console.log('🔔 Updating booking status to Cancelled for booking:', bookingId);
+                    const bookingUpdate = await Booking.findByIdAndUpdate(bookingId, { status: "Cancelled" }, { new: true });
+                    console.log('✅ Booking updated:', bookingUpdate);
+                }
+            } catch (bookingError) {
+                console.error('⚠️ Booking sync failed, but payment status was saved:', bookingError);
+            }
         }
 
-        res.status(200).json({ success: true, message: "Payment and Booking status updated" });
+        res.status(200).json({ success: true, message: "Payment status updated" });
     } catch (error) {
+        console.error('❌ Error in updatePaymentStatus:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -203,7 +229,7 @@ export const approveCancelRequest = async (req, res) => {
 
         payment.paymentStatus = status;
         if (status === "refunded") {
-            await Booking.findByIdAndUpdate(payment.bookingId, { bookingStatus: "cancelled" });
+            await Booking.findByIdAndUpdate(payment.bookingId, { status: "Cancelled" });
         }
 
         await payment.save();
@@ -215,10 +241,18 @@ export const approveCancelRequest = async (req, res) => {
 
 export const deletePayment = async (req, res) => {
     try {
+        console.log('🗑️ deletePayment called with:', { params: req.params, user: req.user });
         const { paymentId } = req.params;
-        await Payment.findByIdAndDelete(paymentId);
+
+        if (!paymentId) {
+            return res.status(400).json({ success: false, message: "Payment ID is required" });
+        }
+
+        const deleted = await Payment.findByIdAndDelete(paymentId);
+        console.log('✅ Payment deleted:', deleted);
         res.status(200).json({ success: true, message: "Payment deleted successfully." });
     } catch (error) {
+        console.error('❌ Error in deletePayment:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -271,7 +305,7 @@ export const verifyPaymentReceiptWithAI = async (req, res) => {
             if (!payment.transactionId && aiResult.transactionId) {
                 payment.transactionId = aiResult.transactionId;
             }
-            await Booking.findByIdAndUpdate(payment.bookingId, { bookingStatus: "confirmed" });
+            await Booking.findByIdAndUpdate(payment.bookingId, { status: "Confirmed" });
         } else {
             payment.paymentStatus = "processing";
         }

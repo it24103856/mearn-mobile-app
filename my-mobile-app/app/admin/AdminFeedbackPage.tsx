@@ -13,7 +13,6 @@ import {
 import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { VictoryBar, VictoryChart, VictoryAxis, VictoryPie, VictoryTheme } from 'victory';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import { getAuthHeaders } from '../../lib/auth';
@@ -119,6 +118,9 @@ const AdminFeedback = () => {
         fill: COLORS[index % COLORS.length],
     })) || [];
 
+    const maxRatingCount = Math.max(...ratingChartData.map(item => item.count), 1);
+    const totalCategoryCount = categoryChartData.reduce((sum, item) => sum + item.y, 0);
+
     return (
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
             <Toast />
@@ -171,17 +173,17 @@ const AdminFeedback = () => {
                         <MaterialCommunityIcons name="chart-bar" size={20} color="#6366F1" />
                         <Text style={styles.chartTitle}>Rating Distribution</Text>
                     </View>
-                    <VictoryChart height={280} theme={VictoryTheme.material}>
-                        <VictoryBar
-                            data={ratingChartData}
-                            x="name"
-                            y="count"
-                            style={{ data: { fill: '#6366F1' } }}
-                            barWidth={35}
-                        />
-                        <VictoryAxis style={{ tickLabels: { fontSize: 11, fill: '#64748b' } }} />
-                        <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 11, fill: '#64748b' } }} />
-                    </VictoryChart>
+                    <View style={styles.chartBody}>
+                        {ratingChartData.map((item) => (
+                            <View key={item.name} style={styles.barRow}>
+                                <Text style={styles.barLabel}>{item.name}</Text>
+                                <View style={styles.barTrack}>
+                                    <View style={[styles.barFill, { width: `${(item.count / maxRatingCount) * 100}%` }]} />
+                                </View>
+                                <Text style={styles.barValue}>{item.count}</Text>
+                            </View>
+                        ))}
+                    </View>
                 </View>
 
                 {/* Category Pie Chart */}
@@ -190,14 +192,17 @@ const AdminFeedback = () => {
                         <MaterialCommunityIcons name="chart-pie" size={20} color="#6366F1" />
                         <Text style={styles.chartTitle}>Category Share</Text>
                     </View>
-                    <VictoryPie
-                        data={categoryChartData}
-                        radius={110}
-                        innerRadius={55}
-                        colorScale={COLORS}
-                        labels={({ datum }: { datum: { x: string; y: number } }) => `${datum.x}\n${datum.y}`}
-                        labelRadius={80}
-                    />
+                    <View style={styles.legendList}>
+                        {categoryChartData.map((item) => (
+                            <View key={item.x} style={styles.legendRow}>
+                                <View style={[styles.legendDot, { backgroundColor: item.fill }]} />
+                                <Text style={styles.legendName}>{item.x}</Text>
+                                <Text style={styles.legendPercent}>
+                                    {totalCategoryCount ? `${Math.round((item.y / totalCategoryCount) * 100)}%` : '0%'}
+                                </Text>
+                            </View>
+                        ))}
+                    </View>
                 </View>
             </View>
 
@@ -285,6 +290,17 @@ const styles = StyleSheet.create({
     chartCard: { backgroundColor: 'white', borderRadius: 24, padding: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 12, elevation: 4 },
     chartHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
     chartTitle: { fontWeight: 'bold', color: '#1F2937' },
+    chartBody: { gap: 12, paddingTop: 8 },
+    barRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    barLabel: { width: 56, fontSize: 11, fontWeight: '700', color: '#475569' },
+    barTrack: { flex: 1, height: 10, backgroundColor: '#E2E8F0', borderRadius: 999, overflow: 'hidden' },
+    barFill: { height: '100%', backgroundColor: '#6366F1', borderRadius: 999 },
+    barValue: { width: 24, textAlign: 'right', fontWeight: '700', color: '#334155' },
+    legendList: { gap: 10, paddingTop: 6 },
+    legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    legendDot: { width: 10, height: 10, borderRadius: 999 },
+    legendName: { flex: 1, color: '#475569', fontWeight: '600' },
+    legendPercent: { color: '#1F2937', fontWeight: '800' },
 
     tableCard: { backgroundColor: 'white', borderRadius: 24, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 12 },
     tableHeader: { padding: 20, backgroundColor: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },

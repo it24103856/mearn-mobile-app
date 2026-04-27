@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { getAuthToken } from '../lib/auth';
 import {
   AlertCircle, Bitcoin, Check, ChevronLeft, Copy,
   Send, Shield, TrendingUp, Zap
@@ -21,14 +21,7 @@ import {
   View
 } from 'react-native';
 
-// ─── Platform-aware token helper ─────────────────────────────────────────────
-const getToken = async (): Promise<string | null> => {
-  if (Platform.OS === 'web') {
-    return localStorage.getItem('token');
-  }
-  return await SecureStore.getItemAsync('token');
-};
-// ─────────────────────────────────────────────────────────────────────────────
+// Use centralized auth helper
 
 // ─── FIX: real backend URL ────────────────────────────────────────────────────
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;// ─────────────────────────────────────────────────────────────────────────────
@@ -86,8 +79,8 @@ const CryptoPayment = () => {
 
     setIsSubmitting(true);
     try {
-      // ─── FIX: read real token ────────────────────────────────────────────
-      const token = await getToken();
+      // Read token using centralized helper
+      const token = await getAuthToken();
       if (!token) {
         Alert.alert('Login Required', 'Please log in to continue.', [
           { text: 'OK', onPress: () => router.push('/login') },

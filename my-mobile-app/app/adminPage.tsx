@@ -129,7 +129,7 @@ const AdminDashboard = () => {
                     </View>
                 </View>
 
-                <Footer />
+                
             </ScrollView>
         </View>
     );

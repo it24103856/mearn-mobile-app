@@ -164,6 +164,10 @@ export default function MyBookings() {
       <ScrollView contentContainerStyle={styles.scrollPadding}>
         
         {/* Header */}
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+
         <View style={styles.header}>
           <View style={styles.headerLine} />
           <Text style={styles.subHeader}>TRAVELER HISTORY</Text>
@@ -292,6 +296,15 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, fontSize: 10, fontWeight: '900', color: '#1e3a8a', letterSpacing: 2 },
   header: { marginBottom: 30 },
+  backButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#0f172a',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    marginBottom: 16,
+  },
+  backButtonText: { color: 'white', fontWeight: '800', fontSize: 12 },
   headerLine: { height: 4, width: 40, backgroundColor: '#1e3a8a', marginBottom: 10 },
   subHeader: { fontSize: 10, fontWeight: '900', color: '#1e3a8a', letterSpacing: 2 },
   mainHeader: { fontSize: 40, fontWeight: '900', color: '#1e293b', lineHeight: 40 },

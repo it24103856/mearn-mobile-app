@@ -11,7 +11,6 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-        <Header />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
         <View style={styles.headerSection}>
@@ -53,13 +52,7 @@ export default function WelcomeScreen() {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity
-            onPress={() => router.push('/linkPage')}
-            style={[styles.mainButton, { backgroundColor: '#10b981' }]}
-          >
-            <LayoutGrid size={20} color="white" style={styles.icon} />
-            <Text style={styles.buttonText}>View User Dashboard</Text>
-          </TouchableOpacity>
+         
           
 
         </View>

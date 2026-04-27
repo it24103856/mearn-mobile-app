@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { getAuthToken } from '../lib/auth';
 import { ChevronLeft, CloudUpload, Hash } from 'lucide-react-native';
 import React, { useState } from 'react';
 import Footer from '../components/Footer';
@@ -18,12 +18,6 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-
-// ─── Platform-aware token helper ─────────────────────────────────────────────
-const getToken = async (): Promise<string | null> => {
-  if (Platform.OS === 'web') return localStorage.getItem('token');
-  return await SecureStore.getItemAsync('token');
-};
 
 // ─── Fallback unique ID (if user leaves field empty) ─────────────────────────
 const generateFallbackId = (): string => {
@@ -87,7 +81,7 @@ const BankTransferPage = () => {
 
     setIsSubmitting(true);
     try {
-      const token = await getToken();
+      const token = await getAuthToken();
       if (!token) {
         Alert.alert('Login Required', 'Please log in to continue.', [
           { text: 'OK', onPress: () => router.push('/login') },

@@ -3,7 +3,8 @@ import * as SecureStore from 'expo-secure-store';
 import { useRouter } from "expo-router";
 import { LayoutDashboard, Menu, X } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Image, Modal, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Modal, Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UserProfile from "./userProfile";
 
 export default function Header() {
@@ -11,6 +12,9 @@ export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const compactHeader = width < 390;
 
   useEffect(() => {
     const checkLogin = async () => {
@@ -49,34 +53,33 @@ export default function Header() {
   };
 
   return (
-    // SafeAreaView එකට padding එකක් එක් කිරීමෙන් Notch එකට යට වීම වළකී
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerContent}>
+    <View style={[styles.safeArea, { paddingTop: insets.top, marginTop: -insets.top }]}>
+      <View style={[styles.headerContent, compactHeader && styles.headerContentCompact]}>
         
         {/* 1. Logo Section */}
         <TouchableOpacity 
           activeOpacity={0.7}
-          style={styles.logoContainer} 
+          style={[styles.logoContainer, compactHeader && styles.logoContainerCompact]} 
           onPress={() => router.push("/homePage")}
         >
           <Image 
             source={require("../assets/logo.png")} 
-            style={{ width: 35, height: 35 }} 
+            style={{ width: compactHeader ? 26 : 30, height: compactHeader ? 26 : 30 }} 
             resizeMode="contain"
           />
-          <Text style={styles.logoText}>
+          <Text style={[styles.logoText, compactHeader && styles.logoTextCompact]} numberOfLines={1}>
             Travel<Text style={{ color: "#22d3ee" }}>Ease</Text>
           </Text>
         </TouchableOpacity>
 
         {/* 2. Right Section */}
-        <View style={styles.rightSection}>
+        <View style={[styles.rightSection, compactHeader && styles.rightSectionCompact]}>
           {isLoggedIn && isAdmin && (
             <TouchableOpacity
-              style={styles.adminIconBtn}
+              style={[styles.adminIconBtn, compactHeader && styles.adminIconBtnCompact]}
               onPress={() => router.push('/adminPage')}
             >
-              <LayoutDashboard color="white" size={18} />
+              <LayoutDashboard color="white" size={compactHeader ? 16 : 18} />
             </TouchableOpacity>
           )}
 
@@ -84,15 +87,15 @@ export default function Header() {
             <UserProfile />
           ) : (
             <TouchableOpacity 
-              style={styles.loginBtn}
+              style={[styles.loginBtn, compactHeader && styles.loginBtnCompact]}
               onPress={() => router.push("/login")}
             >
-              <Text style={styles.loginBtnText}>Login</Text>
+              <Text style={[styles.loginBtnText, compactHeader && styles.loginBtnTextCompact]}>Login</Text>
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity onPress={() => setMenuOpen(true)} style={styles.menuIcon}>
-            <Menu color="white" size={28} />
+          <TouchableOpacity onPress={() => setMenuOpen(true)} style={[styles.menuIcon, compactHeader && styles.menuIconCompact]}>
+            <Menu color="white" size={compactHeader ? 22 : 24} />
           </TouchableOpacity>
         </View>
       </View>
@@ -120,39 +123,49 @@ export default function Header() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: '#111827', // තද පැහැති පසුබිමක් (Dark Blue/Gray)
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0, // Android වල Status bar එක මග හැරීමට
     zIndex: 1000,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    minHeight: 54,
+    backgroundColor: 'rgba(17, 24, 39, 0.96)',
   },
-  logoContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoText: { color: 'white', fontSize: 20, fontWeight: 'bold', letterSpacing: 0.5 },
-  rightSection: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  headerContentCompact: {
+    paddingHorizontal: 12,
+    minHeight: 50,
+  },
+  logoContainer: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  logoContainerCompact: { gap: 4 },
+  logoText: { color: 'white', fontSize: 16, fontWeight: '700', letterSpacing: 0.15, flexShrink: 1 },
+  logoTextCompact: { fontSize: 15 },
+  rightSection: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
+  rightSectionCompact: { gap: 6 },
   adminIconBtn: {
     backgroundColor: '#4f46e5',
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuIcon: { padding: 5 },
-  loginBtn: { backgroundColor: '#06b6d4', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
-  loginBtnText: { color: 'white', fontWeight: 'bold', fontSize: 14 },
+  adminIconBtnCompact: { width: 26, height: 26, borderRadius: 13 },
+  menuIcon: { padding: 2 },
+  menuIconCompact: { padding: 1 },
+  loginBtn: { backgroundColor: '#06b6d4', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
+  loginBtnCompact: { paddingHorizontal: 9, paddingVertical: 4 },
+  loginBtnText: { color: 'white', fontWeight: 'bold', fontSize: 11 },
+  loginBtnTextCompact: { fontSize: 10 },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(17, 24, 39, 0.98)', justifyContent: 'center', alignItems: 'center' },
   closeBtn: { position: 'absolute', top: 50, right: 30, padding: 10 },

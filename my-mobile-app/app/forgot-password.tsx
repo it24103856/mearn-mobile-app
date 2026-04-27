@@ -171,7 +171,6 @@ export default function ForgotPasswordScreen() {
             </View>
 
             <View style={{ marginHorizontal: -25 }}>
-              <Footer />
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
