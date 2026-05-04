@@ -90,7 +90,12 @@ const VehiclePage: React.FC = () => {
 
           <TouchableOpacity
             style={styles.profileBtn}
-            onPress={() => router.push(`/vehicle/${item._id}` as any)}
+            onPress={() =>
+              router.push({
+                pathname: "/vehicleOverview",
+                params: { id: item._id },
+              })
+            }
           >
             <Text style={styles.profileBtnText}>View Details</Text>
           </TouchableOpacity>

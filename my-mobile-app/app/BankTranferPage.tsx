@@ -4,12 +4,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getAuthToken } from '../lib/auth';
 import { ChevronLeft, CloudUpload, Hash } from 'lucide-react-native';
 import React, { useState } from 'react';
+import Toast from 'react-native-toast-message';
 import Footer from '../components/Footer';
 import { uploadFile } from '../lib/supabase';
 import {
     ActivityIndicator,
     Alert,
     Image,
+    Modal,
     Platform,
     ScrollView,
     StyleSheet,
@@ -18,6 +20,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { Calendar } from 'lucide-react-native';
 
 // ─── Fallback unique ID (if user leaves field empty) ─────────────────────────
 const generateFallbackId = (): string => {
@@ -38,6 +41,9 @@ const BankTransferPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [preview,      setPreview]      = useState<string | null>(null);
   const [receiptFile,  setReceiptFile]  = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
+  const [transactionError, setTransactionError] = useState('');
 
   const [formData, setFormData] = useState({
     customerName:  '',
@@ -51,6 +57,47 @@ const BankTransferPage = () => {
 
   const handleInputChange = (name: string, value: string) =>
     setFormData(prev => ({ ...prev, [name]: value }));
+
+  const openDatePicker = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const currentDate = formData.paymentDate ? new Date(formData.paymentDate) : new Date();
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const date = currentDate.getDate();
+        
+        // Android native date picker (requires native-community/datetimepicker)
+        // For now, use modal picker
+        setShowDatePicker(true);
+        setTempDate(currentDate);
+      } catch (error) {
+        console.log('DatePicker Error: ', error);
+      }
+    } else {
+      setShowDatePicker(true);
+      setTempDate(formData.paymentDate ? new Date(formData.paymentDate) : new Date());
+    }
+  };
+
+  const handleDateConfirm = () => {
+    const formatted = tempDate.toISOString().split('T')[0];
+    handleInputChange('paymentDate', formatted);
+    setShowDatePicker(false);
+  };
+
+  const validateTransactionId = (value: string) => {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return 'Transaction reference is required.';
+    }
+
+    if (trimmed.length < 7) {
+      return 'Transaction reference must be at least 7 characters.';
+    }
+
+    return '';
+  };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -89,6 +136,13 @@ const BankTransferPage = () => {
         return;
       }
 
+      const nextTransactionError = validateTransactionId(formData.transactionId);
+      setTransactionError(nextTransactionError);
+      if (nextTransactionError) {
+        Alert.alert('Error', nextTransactionError);
+        return;
+      }
+
       // User දීල නැත්නම් fallback ID generate කරනවා
       const finalTransactionId = formData.transactionId.trim() || generateFallbackId();
       const uploadedUrl = await uploadFile(receiptFile.uri, 'payments');
@@ -116,8 +170,14 @@ const BankTransferPage = () => {
       );
 
       if (data.success) {
-        Alert.alert('Success', data.aiNote || 'Payment submitted successfully!');
-        setTimeout(() => router.replace('/homePage'), 1500);
+        Toast.show({
+          type: 'success',
+          text1: 'Payment Confirmed! ✓',
+          text2: data.aiNote || 'Payment submitted successfully!',
+          visibilityTime: 3000,
+          position: 'top',
+        });
+        setTimeout(() => router.replace('/my-payments'), 3000);
       } else {
         Alert.alert('Failed', data.message || 'Something went wrong.');
       }
@@ -169,8 +229,12 @@ const BankTransferPage = () => {
           <View style={styles.row}>
             <View style={{ flex: 1, marginRight: 10 }}>
               <Text style={styles.label}>Transfer Date</Text>
-              <TextInput style={styles.input} placeholder="YYYY-MM-DD"
-                onChangeText={(v) => handleInputChange('paymentDate', v)} />
+              <TouchableOpacity onPress={openDatePicker} style={styles.datePickerBtn}>
+                <Calendar size={16} color="#3b82f6" style={{ marginRight: 8 }} />
+                <Text style={styles.datePickerText}>
+                  {formData.paymentDate || 'Select Date'}
+                </Text>
+              </TouchableOpacity>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Paid Amount (LKR)</Text>
@@ -190,10 +254,18 @@ const BankTransferPage = () => {
               placeholder="Enter bank transaction / reference ID"
               placeholderTextColor="#94a3b8"
               value={formData.transactionId}
-              onChangeText={(v) => handleInputChange('transactionId', v)}
+              onChangeText={(v) => {
+                handleInputChange('transactionId', v);
+                if (transactionError) {
+                  setTransactionError(validateTransactionId(v));
+                }
+              }}
               autoCapitalize="characters"
             />
           </View>
+          <Text style={[styles.txnHint, transactionError ? styles.txnError : null]}>
+            {transactionError || 'Enter the receipt or bank app reference ID. Minimum 7 characters.'}
+          </Text>
           <Text style={styles.txnHint}>
             * Receipt slip එකේ හෝ bank app එකේ ඇති Reference / Transaction ID එක ඇතුළු කරන්න.
             {'\n'}Empty ලෙස ගියොත් auto-generate වේ.
@@ -221,8 +293,10 @@ const BankTransferPage = () => {
           </TouchableOpacity>
 
           {/* Submit */}
-          <TouchableOpacity onPress={handleSubmit} disabled={isSubmitting}
-            style={[styles.submitBtn, isSubmitting && styles.disabledBtn]}>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={isSubmitting || formData.transactionId.trim().length < 7}
+            style={[styles.submitBtn, (isSubmitting || formData.transactionId.trim().length < 7) && styles.disabledBtn]}>
             {isSubmitting
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.submitBtnText}>CONFIRM & SUBMIT PAYMENT</Text>}
@@ -232,6 +306,47 @@ const BankTransferPage = () => {
       </View>
 
       <Text style={styles.footerText}>SECURE AI POWERED VERIFICATION SYSTEM</Text>
+
+      {/* iOS/Android Date Picker Modal */}
+      <Modal visible={showDatePicker} animationType="slide" transparent>
+        <View style={styles.datePickerModal}>
+          <View style={styles.datePickerContainer}>
+            <View style={styles.datePickerHeader}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.datePickerCancelBtn}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.datePickerTitle}>Select Date</Text>
+              <TouchableOpacity onPress={handleDateConfirm}>
+                <Text style={styles.datePickerConfirmBtn}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.datePickerContent}>
+              <View style={styles.dateSpinner}>
+                <Text style={styles.dateDisplay}>
+                  {tempDate.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </Text>
+              </View>
+              <View style={styles.dateInputRow}>
+                <TextInput
+                  style={[styles.dateInput, { flex: 2 }]}
+                  placeholder="YYYY-MM-DD"
+                  value={tempDate.toISOString().split('T')[0]}
+                  onChangeText={(text) => {
+                    try {
+                      const date = new Date(text + 'T00:00:00');
+                      if (!isNaN(date.getTime())) {
+                        setTempDate(date);
+                      }
+                    } catch (e) {
+                      console.log('Invalid date');
+                    }
+                  }}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Footer />
     </ScrollView>
@@ -259,6 +374,7 @@ const styles = StyleSheet.create({
   txnBox:           { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', borderRadius: 16, borderWidth: 1.5, borderColor: '#bfdbfe', paddingHorizontal: 16, paddingVertical: 4, marginBottom: 8 },
   txnInput:         { flex: 1, paddingVertical: 14, fontSize: 14, color: '#0f172a', fontWeight: '600' },
   txnHint:          { fontSize: 11, color: '#94a3b8', marginBottom: 20, marginLeft: 4, lineHeight: 18 },
+  txnError:         { color: '#dc2626' },
 
   uploadBox:        { borderStyle: 'dashed', borderWidth: 2, borderColor: '#bfdbfe', borderRadius: 24, padding: 30, alignItems: 'center', backgroundColor: '#eff6ff', marginBottom: 8 },
   uploadTitle:      { fontWeight: '900', fontSize: 12, marginTop: 12, color: '#475569' },
@@ -271,6 +387,19 @@ const styles = StyleSheet.create({
   disabledBtn:      { backgroundColor: '#cbd5e1' },
   submitBtnText:    { color: '#fff', fontWeight: '900', letterSpacing: 2, fontSize: 12 },
   footerText:       { textAlign: 'center', fontSize: 9, color: '#94a3b8', marginTop: 24, fontWeight: 'bold', letterSpacing: 1 },
+  datePickerBtn:    { backgroundColor: '#f1f5f9', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0', flexDirection: 'row', alignItems: 'center' },
+  datePickerText:   { color: '#0f172a', fontWeight: '600', fontSize: 14 },
+  datePickerModal:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  datePickerContainer: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 20 },
+  datePickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  datePickerTitle:  { fontWeight: 'bold', fontSize: 16, color: '#0f172a' },
+  datePickerCancelBtn: { color: '#94a3b8', fontWeight: 'bold', fontSize: 14 },
+  datePickerConfirmBtn: { color: '#2563eb', fontWeight: 'bold', fontSize: 14 },
+  datePickerContent: { padding: 20 },
+  dateSpinner:      { alignItems: 'center', marginBottom: 16 },
+  dateDisplay:      { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
+  dateInputRow:     { flexDirection: 'row', gap: 8, marginTop: 16 },
+  dateInput:        { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e2e8f0', fontSize: 14, color: '#0f172a', fontWeight: '600' },
 });
 
 export default BankTransferPage;

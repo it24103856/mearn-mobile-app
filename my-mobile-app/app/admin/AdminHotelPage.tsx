@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     View,
     Text,
@@ -14,7 +14,9 @@ import {
 import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
+import { getAuthHeaders } from '../../lib/auth';
 
 interface Hotel {
     _id: string;
@@ -41,9 +43,9 @@ const AdminHotelPage = () => {
     // Fetch Hotels
     const fetchHotels = async () => {
         try {
-            const token = ''; // ← Replace with your token logic (AsyncStorage recommended)
+            const headers = await getAuthHeaders();
             const res = await axios.get(`${backendUrl}/hotels/all`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers,
             });
             setHotels(res.data.data || res.data || []);
         } catch (error) {
@@ -53,9 +55,12 @@ const AdminHotelPage = () => {
         }
     };
 
-    useEffect(() => {
-        fetchHotels();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            setLoading(true);
+            fetchHotels();
+        }, [])
+    );
 
     // Delete Handler
     const handleDeleteClick = (hotel: Hotel) => {
@@ -68,9 +73,9 @@ const AdminHotelPage = () => {
         setDeleting(true);
 
         try {
-            const token = ''; // Add token
+            const headers = await getAuthHeaders();
             await axios.delete(`${backendUrl}/hotels/delete/${selectedHotel._id}`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers,
             });
 
             Toast.show({ type: 'success', text1: 'Hotel deleted successfully' });

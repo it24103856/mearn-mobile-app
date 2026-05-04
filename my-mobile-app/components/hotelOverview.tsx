@@ -4,6 +4,7 @@ import {
     Bed,
     CalendarCheck,
     Crown,
+    ChevronLeft,
     Info,
     MapPin,
     Phone,
@@ -75,6 +76,9 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
                         source={{ uri: hotel.images?.[0] || 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb' }} 
                         style={styles.heroImage} 
                     />
+                    <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+                        <ChevronLeft size={20} color="#0B223A" />
+                    </TouchableOpacity>
                     <View style={styles.heroOverlay}>
                         <View>
                             <Text style={styles.hotelName}>{hotel.name}</Text>
@@ -190,6 +194,7 @@ const styles = StyleSheet.create({
     
     heroSection: { height: 400, position: 'relative' },
     heroImage: { width: '100%', height: '100%' },
+    backBtn: { position: 'absolute', top: 18, left: 18, zIndex: 5, backgroundColor: 'rgba(255,255,255,0.92)', padding: 10, borderRadius: 999 },
     heroOverlay: { 
         position: 'absolute', bottom: 0, width: '100%', 
         padding: 20, backgroundColor: 'rgba(11, 34, 58, 0.6)',

@@ -5,13 +5,15 @@ import {
   AlertCircle, Bitcoin, Check, ChevronLeft, Copy,
   Send, Shield, TrendingUp, Zap
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import Toast from 'react-native-toast-message';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 import {
   ActivityIndicator,
   Alert,
   Clipboard,
+  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -33,6 +35,7 @@ const CryptoPayment = () => {
 
   const [copied,        setCopied]        = useState(false);
   const [transactionId, setTransactionId] = useState('');
+  const [transactionError, setTransactionError] = useState('');
   const [isSubmitting,  setIsSubmitting]  = useState(false);
   const [activeTab,     setActiveTab]     = useState('bitcoin');
 
@@ -64,6 +67,10 @@ const CryptoPayment = () => {
   } as const;
 
   const currentWallet = cryptoWallets[activeTab as keyof typeof cryptoWallets];
+  const qrCodeUrl = useMemo(
+    () => `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(currentWallet.address)}`,
+    [currentWallet.address]
+  );
 
   const handleCopy = () => {
     Clipboard.setString(currentWallet.address);
@@ -71,9 +78,26 @@ const CryptoPayment = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const validateTransactionId = (value: string) => {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return 'Transaction hash is required.';
+    }
+
+    if (trimmed.length < 64) {
+      return 'TXID must be at least 64 characters.';
+    }
+
+    return '';
+  };
+
   const handlePaymentSubmit = async () => {
-    if (!transactionId.trim()) {
-      Alert.alert('Error', 'Please enter Transaction Hash.');
+    const nextError = validateTransactionId(transactionId);
+    setTransactionError(nextError);
+
+    if (nextError) {
+      Alert.alert('Error', nextError);
       return;
     }
 
@@ -107,9 +131,15 @@ const CryptoPayment = () => {
       );
 
       if (response.data.success) {
-        Alert.alert('Success', 'Payment details sent to Admin!');
+        Toast.show({
+          type: 'success',
+          text1: 'Payment Confirmed! ✓',
+          text2: 'Crypto transaction submitted successfully!',
+          visibilityTime: 3000,
+          position: 'top',
+        });
         setTransactionId('');
-        setTimeout(() => router.replace('/homePage'), 1500);
+        setTimeout(() => router.replace('/my-payments'), 3000);
       } else {
         Alert.alert('Failed', response.data.message || 'Something went wrong.');
       }
@@ -158,9 +188,7 @@ const CryptoPayment = () => {
           {/* QR / Address */}
           <View style={[styles.qrWrapper, { borderColor: currentWallet.color }]}>
             <View style={styles.qrInner}>
-              <View style={styles.qrPlaceholder}>
-                <Text style={styles.qrPlaceholderText}>Scan wallet address QR</Text>
-              </View>
+              <Image source={{ uri: qrCodeUrl }} style={styles.qrImage} />
               <View style={styles.addressBox}>
                 <Text numberOfLines={1} style={styles.addressText}>
                   {currentWallet.address}
@@ -184,14 +212,25 @@ const CryptoPayment = () => {
               style={styles.input}
               placeholder="Paste your transaction hash here"
               value={transactionId}
-              onChangeText={setTransactionId}
+              onChangeText={(value) => {
+                setTransactionId(value);
+                if (transactionError) {
+                  setTransactionError(validateTransactionId(value));
+                }
+              }}
               placeholderTextColor="#94a3b8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={128}
             />
+            <Text style={[styles.txidHint, transactionError ? styles.txidError : null]}>
+              {transactionError || 'Enter a TXID with at least 64 characters.'}
+            </Text>
 
             <TouchableOpacity
-              style={[styles.submitBtn, isSubmitting && styles.btnDisabled]}
+              style={[styles.submitBtn, (isSubmitting || !transactionId.trim() || transactionId.trim().length < 64) && styles.btnDisabled]}
               onPress={handlePaymentSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !transactionId.trim() || transactionId.trim().length < 64}
             >
               {isSubmitting ? (
                 <ActivityIndicator color="#fff" />
@@ -241,15 +280,16 @@ const styles = StyleSheet.create({
   amountText:         { fontSize: 32, fontWeight: '900', color: '#0f172a' },
   qrWrapper:          { borderStyle: 'solid', borderWidth: 2, borderRadius: 24, padding: 8, marginBottom: 24 },
   qrInner:            { backgroundColor: '#fff', borderRadius: 20, padding: 16, alignItems: 'center' },
+  qrImage:            { width: 180, height: 180, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#f8fafc' },
   addressBox:         { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 12, marginTop: 16, borderWidth: 1, borderColor: '#e2e8f0' },
   addressText:        { flex: 1, fontSize: 10, color: '#64748b', fontStyle: 'italic' },
   copyBtn:            { marginLeft: 8, backgroundColor: '#fff', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' },
-  qrPlaceholder:      { width: 180, height: 180, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' },
-  qrPlaceholderText:  { color: '#64748b', fontSize: 12, fontWeight: '600' },
   form:               { gap: 16 },
   labelRow:           { flexDirection: 'row', alignItems: 'center', gap: 8 },
   formLabel:          { fontWeight: 'bold', color: '#334155', fontSize: 14 },
   input:              { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 16, padding: 16, fontSize: 12, color: '#0f172a' },
+  txidHint:           { marginTop: -6, color: '#64748b', fontSize: 11, lineHeight: 16 },
+  txidError:          { color: '#dc2626' },
   submitBtn:          { backgroundColor: '#0f172a', padding: 18, borderRadius: 16, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 5, elevation: 4 },
   btnDisabled:        { backgroundColor: '#cbd5e1' },
   btnRow:             { flexDirection: 'row', alignItems: 'center', gap: 12 },

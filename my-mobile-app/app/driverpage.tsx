@@ -1,4 +1,5 @@
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { Component } from "react";
 import {
   ActivityIndicator,
@@ -24,6 +25,7 @@ const { width } = Dimensions.get("window");
 interface Driver {
   _id: string;
   name: string;
+  email?: string;
   vehicleType: string;
   profileImage?: string;
 }
@@ -99,7 +101,17 @@ class DriversScreen extends Component<{}, any> {
 
           <TouchableOpacity 
             style={styles.profileBtn}
-            onPress={() => Alert.alert("Profile", `Navigating to ${item.name}'s profile...`)}
+            onPress={() => {
+              if (!item.email) {
+                Alert.alert("Missing data", "Driver email is not available for this profile.");
+                return;
+              }
+
+              router.push({
+                pathname: '/driverOverview',
+                params: { email: item.email },
+              });
+            }}
           >
             <Text style={styles.profileBtnText}>View Profile</Text>
           </TouchableOpacity>

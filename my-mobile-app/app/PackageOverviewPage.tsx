@@ -274,6 +274,9 @@ const PackageOverviewPage: React.FC = () => {
             resizeMode="cover"
           />
           <View style={styles.heroOverlay} />
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={22} color={C.navy} />
+          </TouchableOpacity>
           <View style={styles.heroContent}>
             {/* Categories */}
             <View style={styles.categoryRow}>
@@ -751,6 +754,15 @@ const styles = StyleSheet.create({
   // ── Hero ───────────────────────────────────────────────────────────────
   hero: { height: 340, width: "100%", justifyContent: "flex-end" },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(11,34,58,0.55)" },
+  backBtn: {
+    position: "absolute",
+    top: 18,
+    left: 18,
+    zIndex: 10,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderRadius: 999,
+    padding: 10,
+  },
   heroContent: { padding: 20, gap: 8 },
   categoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   categoryBadge: {
