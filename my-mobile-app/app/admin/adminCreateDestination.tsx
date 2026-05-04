@@ -1,267 +1,408 @@
-import React, { useState } from 'react';
+import { useState } from "react";
+import axios from "axios";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import Toast from "react-native-toast-message";
 import {
-    View,
-    Text,
-    ScrollView,
-    TextInput,
-    TouchableOpacity,
-    Image,
-    Alert,
-    ActivityIndicator,
-    StyleSheet,
-} from 'react-native';
-import axios from 'axios';
-import Toast from 'react-native-toast-message';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { uploadFile } from '../../lib/supabase';
-import * as ImagePicker from 'expo-image-picker'; // Add this for image selection
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Picker } from "@react-native-picker/picker";
+import { ArrowLeft, FileText, Image as ImageIcon, MapPin, Trash2, UploadCloud, Type } from "lucide-react-native";
+import { uploadFile } from "../../lib/supabase";
+import { getAuthHeaders } from "../../lib/auth";
 
-// Sri Lanka Data (same as web)
-const SRI_LANKA_DATA: any = {};
+const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || "";
+
+const SRI_LANKA_DATA: Record<string, Record<string, string[]>> = {
+  Western: {
+    Colombo: ["Colombo 01-15", "Dehiwala", "Mount Lavinia", "Moratuwa", "Kotte", "Battaramulla", "Maharagama", "Kesbewa", "Avissawella", "Homagama", "Hanwella"],
+    Gampaha: ["Negombo", "Gampaha", "Veyangoda", "Wattala", "Ja-Ela", "Kadawatha", "Kelaniya", "Kiribathgoda", "Minuwangoda", "Nittambuwa"],
+    Kalutara: ["Kalutara", "Panadura", "Horana", "Beruwala", "Aluthgama", "Matugama", "Wadduwa"],
+  },
+  Central: {
+    Kandy: ["Kandy", "Peradeniya", "Gampola", "Nawalapitiya", "Katugastota", "Kundasale", "Digana", "Gelioya"],
+    Matale: ["Matale", "Dambulla", "Sigiriya", "Ukuwela", "Pallepola"],
+    "Nuwara Eliya": ["Nuwara Eliya", "Hatton", "Talawakele", "Walapane", "Hanguranketha"],
+  },
+  Southern: {
+    Galle: ["Galle", "Hikkaduwa", "Ambalangoda", "Baddegama", "Bentota", "Karapitiya", "Elpitiya", "Ahangama"],
+    Matara: ["Matara", "Weligama", "Mirissa", "Dikwella", "Hakmana", "Deniyaya", "Kamburupitiya"],
+    Hambantota: ["Hambantota", "Tangalle", "Tissamaharama", "Ambalantota", "Beliatta"],
+  },
+  "North Western": {
+    Kurunegala: ["Kurunegala", "Kuliyapitiya", "Narammala", "Wariyapola", "Pannala", "Polgahawela"],
+    Puttalam: ["Puttalam", "Chilaw", "Marawila", "Wennappuwa", "Kalpitiya", "Dankotuwa"],
+  },
+  "North Central": {
+    Anuradhapura: ["Anuradhapura", "Eppawala", "Kekirawa", "Medawachchiya", "Mihintale", "Thalawa"],
+    Polonnaruwa: ["Polonnaruwa", "Kaduruwela", "Medirigiriya", "Hingurakgoda"],
+  },
+  Uva: {
+    Badulla: ["Badulla", "Bandarawela", "Hali-Ela", "Ella", "Mahiyanganaya", "Welimada", "Passara"],
+    Monaragala: ["Monaragala", "Wellawaya", "Buttala", "Bibile", "Kataragama"],
+  },
+  Sabaragamuwa: {
+    Rathnapura: ["Rathnapura", "Balangoda", "Embilipitiya", "Pelmadulla", "Eheliyagoda", "Kuruwita"],
+    Kegalle: ["Kegalle", "Mawanella", "Warakapola", "Rambukkana", "Deraniyagala"],
+  },
+  Northern: {
+    Jaffna: ["Jaffna", "Chavakachcheri", "Point Pedro", "Karainagar"],
+    Kilinochchi: ["Kilinochchi", "Pallai"],
+    Mannar: ["Mannar", "Nanattan"],
+    Vavuniya: ["Vavuniya", "Cheddikulam"],
+    Mullaitivu: ["Mullaitivu", "Oddusuddan"],
+  },
+  Eastern: {
+    Trincomalee: ["Trincomalee", "Kinniya", "Mutur"],
+    Batticaloa: ["Batticaloa", "Eravur", "Kattankudy", "Valaichchenai"],
+    Ampara: ["Ampara", "Akkaraipattu", "Kalmunai", "Sainthamaruthu"],
+  },
+};
+
+interface FormData {
+  name: string;
+  description: string;
+  province: string;
+  district: string;
+  city: string;
+  image: string[];
+}
 
 const AdminCreateDestination = () => {
-    const navigation = useNavigation();
-    const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    description: "",
+    province: "",
+    district: "",
+    city: "",
+    image: [],
+  });
 
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        province: '',
-        district: '',
-        city: '',
-        image: [] as string[],
+  const setField = (field: keyof FormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleProvinceChange = (province: string) => {
+    setFormData((prev) => ({ ...prev, province, district: "", city: "" }));
+  };
+
+  const handleDistrictChange = (district: string) => {
+    setFormData((prev) => ({ ...prev, district, city: "" }));
+  };
+
+  const handleImageUpload = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
     });
 
-    const handleChange = (field: string, value: string) => {
-        if (field === 'province') {
-            setFormData({ ...formData, province: value, district: '', city: '' });
-        } else if (field === 'district') {
-            setFormData({ ...formData, district: value, city: '' });
-        } else {
-            setFormData({ ...formData, [field]: value });
-        }
-    };
+    if (result.canceled || !result.assets?.length) {
+      return;
+    }
 
-    // Image Picker + Upload
-    const pickAndUploadImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 0.8,
-        });
+    setUploading(true);
+    try {
+      const uploadedUrls = await Promise.all(result.assets.map((asset) => uploadFile(asset.uri, "destinations")));
+      setFormData((prev) => ({ ...prev, image: [...prev.image, ...uploadedUrls] }));
+      Toast.show({ type: "success", text1: "Image uploaded" });
+    } catch {
+      Toast.show({ type: "error", text1: "Upload failed" });
+    } finally {
+      setUploading(false);
+    }
+  };
 
-        if (result.canceled || !result.assets?.[0]) return;
+  const removeImage = (index: number) => {
+    setFormData((prev) => ({ ...prev, image: prev.image.filter((_, i) => i !== index) }));
+  };
 
-        setUploading(true);
-        try {
-            const imageUrl = await uploadFile(result.assets[0].uri, 'destinations');
+  const handleSubmit = async () => {
+    if (!formData.name.trim() || !formData.description.trim() || !formData.province || !formData.district || !formData.city) {
+      Toast.show({ type: "error", text1: "Please complete all destination fields" });
+      return;
+    }
 
-            setFormData((prev) => ({ ...prev, image: [...prev.image, imageUrl] }));
-            Toast.show({ type: 'success', text1: 'Image added!' });
-        } catch (error) {
-            Toast.show({ type: 'error', text1: 'Upload failed!' });
-        } finally {
-            setUploading(false);
-        }
-    };
+    if (formData.image.length === 0) {
+      Toast.show({ type: "error", text1: "Upload at least one image" });
+      return;
+    }
 
-    const removeImage = (index: number) => {
-        setFormData((prev) => ({
-            ...prev,
-            image: prev.image.filter((_, i) => i !== index),
-        }));
-    };
+    if (!backendUrl) {
+      Toast.show({ type: "error", text1: "Backend URL is missing" });
+      return;
+    }
 
-    const handleSubmit = async () => {
-        if (formData.image.length === 0) {
-            return Toast.show({ type: 'error', text1: 'Upload at least one image!' });
-        }
+    setLoading(true);
+    try {
+      const headers = await getAuthHeaders();
+      await axios.post(`${backendUrl}/destinations/create`, formData, { headers });
+      Toast.show({ type: "success", text1: "Destination created" });
+      router.replace("/admin/adminDestination");
+    } catch (error: any) {
+      Toast.show({ type: "error", text1: error.response?.data?.message || "Error saving data" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setLoading(true);
-        try {
-            const token = ''; // ← Add your token logic
-            await axios.post(
-                `${process.env.EXPO_PUBLIC_BACKEND_URL}/destinations/create`,
-                formData,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+  return (
+    <SafeAreaView style={styles.container}>
+      <Toast />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={22} color="#4B5563" />
+          </TouchableOpacity>
+          <Text style={styles.title}>
+            Add <Text style={styles.titleAccent}>Destination</Text>
+          </Text>
+        </View>
 
-            Toast.show({ type: 'success', text1: 'Destination created successfully!' });
-            navigation.goBack();
-        } catch (error: any) {
-            Toast.show({
-                type: 'error',
-                text1: error.response?.data?.message || 'Error saving destination',
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
+        <View style={styles.card}>
+          <View style={styles.field}>
+            <Text style={styles.label}><Type size={16} color="#C8813A" /> Name</Text>
+            <TextInput
+              value={formData.name}
+              onChangeText={(value) => setField("name", value)}
+              placeholder="Destination name"
+              placeholderTextColor="#9CA3AF"
+              style={styles.input}
+            />
+          </View>
 
-    return (
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-            <Toast />
-
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#4B5563" />
-                    <Text style={styles.backText}>Back to List</Text>
-                </TouchableOpacity>
-                <Text style={styles.title}>
-                    Add <Text style={styles.highlight}>Destination</Text>
-                </Text>
+          <View style={styles.row}>
+            <View style={[styles.field, styles.flex1]}>
+              <Text style={styles.label}><MapPin size={16} color="#C8813A" /> Province</Text>
+              <View style={styles.pickerWrap}>
+                <Picker selectedValue={formData.province} onValueChange={handleProvinceChange}>
+                  <Picker.Item label="Select Province" value="" />
+                  {Object.keys(SRI_LANKA_DATA).map((province) => (
+                    <Picker.Item key={province} label={province} value={province} />
+                  ))}
+                </Picker>
+              </View>
             </View>
 
-            <View style={styles.formCard}>
-                {/* Name */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Destination Name</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="e.g. Sigiriya Rock Fortress"
-                        value={formData.name}
-                        onChangeText={(text) => handleChange('name', text)}
-                    />
-                </View>
-
-                {/* Location Selects */}
-                <View style={styles.row}>
-                    <View style={styles.half}>
-                        <Text style={styles.label}>Province</Text>
-                        <TouchableOpacity style={styles.select} onPress={() => { /* Use Picker Modal */ }}>
-                            <Text style={styles.selectText}>
-                                {formData.province || 'Select Province'}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                    <View style={styles.half}>
-                        <Text style={styles.label}>District</Text>
-                        <TouchableOpacity style={styles.select} disabled={!formData.province}>
-                            <Text style={styles.selectText}>
-                                {formData.district || 'Select District'}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>City</Text>
-                    <TouchableOpacity style={styles.select} disabled={!formData.district}>
-                        <Text style={styles.selectText}>
-                            {formData.city || 'Select City'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Description */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Description</Text>
-                    <TextInput
-                        style={[styles.input, styles.textarea]}
-                        multiline
-                        numberOfLines={5}
-                        placeholder="Describe this destination..."
-                        value={formData.description}
-                        onChangeText={(text) => handleChange('description', text)}
-                    />
-                </View>
-
-                {/* Images */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Images</Text>
-
-                    <TouchableOpacity style={styles.uploadBox} onPress={pickAndUploadImage} disabled={uploading}>
-                        {uploading ? (
-                            <ActivityIndicator color="#C8813A" />
-                        ) : (
-                            <>
-                                <MaterialCommunityIcons name="cloud-upload" size={32} color="#C8813A" />
-                                <Text style={styles.uploadText}>Upload Image</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-
-                    <View style={styles.imageGrid}>
-                        {formData.image.map((url, index) => (
-                            <View key={index} style={styles.imagePreviewContainer}>
-                                <Image source={{ uri: url }} style={styles.imagePreview} />
-                                <TouchableOpacity
-                                    style={styles.removeBtn}
-                                    onPress={() => removeImage(index)}
-                                >
-                                    <MaterialCommunityIcons name="close-circle" size={22} color="#EF4444" />
-                                </TouchableOpacity>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Submit Button */}
-                <TouchableOpacity
-                    style={styles.submitButton}
-                    onPress={handleSubmit}
-                    disabled={loading || uploading}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <Text style={styles.submitText}>Create Destination</Text>
-                    )}
-                </TouchableOpacity>
+            <View style={[styles.field, styles.flex1]}>
+              <Text style={styles.label}><MapPin size={16} color="#C8813A" /> District</Text>
+              <View style={styles.pickerWrap}>
+                <Picker selectedValue={formData.district} onValueChange={handleDistrictChange} enabled={!!formData.province}>
+                  <Picker.Item label="Select District" value="" />
+                  {formData.province ? Object.keys(SRI_LANKA_DATA[formData.province]).map((district) => (
+                    <Picker.Item key={district} label={district} value={district} />
+                  )) : null}
+                </Picker>
+              </View>
             </View>
-        </ScrollView>
-    );
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}><MapPin size={16} color="#C8813A" /> City</Text>
+            <View style={styles.pickerWrap}>
+              <Picker selectedValue={formData.city} onValueChange={(city) => setField("city", city)} enabled={!!formData.district}>
+                <Picker.Item label="Select City" value="" />
+                {formData.province && formData.district
+                  ? SRI_LANKA_DATA[formData.province][formData.district].map((city) => (
+                      <Picker.Item key={city} label={city} value={city} />
+                    ))
+                  : null}
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}><FileText size={16} color="#C8813A" /> Description</Text>
+            <TextInput
+              value={formData.description}
+              onChangeText={(value) => setField("description", value)}
+              placeholder="Description"
+              placeholderTextColor="#9CA3AF"
+              style={[styles.input, styles.textArea]}
+              multiline
+              numberOfLines={5}
+              textAlignVertical="top"
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}><ImageIcon size={16} color="#C8813A" /> Images</Text>
+            <TouchableOpacity style={styles.uploadBox} onPress={handleImageUpload} disabled={uploading}>
+              {uploading ? <ActivityIndicator color="#C8813A" /> : <UploadCloud size={24} color="#C8813A" />}
+              <Text style={styles.uploadText}>{uploading ? "Uploading..." : "Add Photos"}</Text>
+            </TouchableOpacity>
+
+            <View style={styles.imageGrid}>
+              {formData.image.map((uri, index) => (
+                <View key={`${uri}-${index}`} style={styles.imageCard}>
+                  <Image source={{ uri }} style={styles.image} />
+                  <TouchableOpacity style={styles.removeButton} onPress={() => removeImage(index)}>
+                    <Trash2 size={14} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity style={[styles.submitButton, (loading || uploading) && styles.submitButtonDisabled]} onPress={handleSubmit} disabled={loading || uploading}>
+            <Text style={styles.submitText}>{loading ? "Saving..." : "Create Destination"}</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#FDFDFD' },
-    header: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 12 },
-    backButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    backText: { fontSize: 16, color: '#4B5563', fontWeight: '600' },
-    title: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', marginLeft: 'auto' },
-    highlight: { color: '#C8813A' },
-
-    formCard: { backgroundColor: 'white', margin: 16, borderRadius: 24, padding: 20, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 12 },
-
-    inputGroup: { marginBottom: 20 },
-    label: { fontSize: 14, fontWeight: 'bold', color: '#374151', marginBottom: 8 },
-    input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 16, padding: 16, fontSize: 16 },
-    textarea: { height: 120, textAlignVertical: 'top' },
-
-    row: { flexDirection: 'row', gap: 12 },
-    half: { flex: 1 },
-
-    select: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 16, padding: 16, justifyContent: 'center' },
-    selectText: { color: '#4B5563', fontSize: 16 },
-
-    uploadBox: {
-        height: 120,
-        borderWidth: 2,
-        borderStyle: 'dashed',
-        borderColor: '#C8813A',
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 12,
-    },
-    uploadText: { marginTop: 8, color: '#C8813A', fontWeight: '600' },
-
-    imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-    imagePreviewContainer: { width: 100, height: 100, borderRadius: 16, overflow: 'hidden', position: 'relative' },
-    imagePreview: { width: '100%', height: '100%', resizeMode: 'cover' },
-    removeBtn: { position: 'absolute', top: 6, right: 6 },
-
-    submitButton: {
-        backgroundColor: '#C8813A',
-        padding: 18,
-        borderRadius: 999,
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    submitText: { color: 'white', fontWeight: 'bold', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: "#FDFDFD",
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  title: {
+    flex: 1,
+    textAlign: "right",
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#111827",
+  },
+  titleAccent: {
+    color: "#C8813A",
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 28,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#EEF2F7",
+  },
+  field: {
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  flex1: {
+    flex: 1,
+  },
+  label: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: "#111827",
+    fontSize: 15,
+  },
+  textArea: {
+    minHeight: 120,
+  },
+  pickerWrap: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 18,
+    backgroundColor: "#F9FAFB",
+    overflow: "hidden",
+  },
+  uploadBox: {
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: "#F0D2AE",
+    backgroundColor: "#FFF9F1",
+    borderRadius: 20,
+    paddingVertical: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 14,
+  },
+  uploadText: {
+    color: "#9A6430",
+    fontWeight: "700",
+  },
+  imageGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  imageCard: {
+    width: "48%",
+    height: 140,
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "#E5E7EB",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  removeButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  submitButton: {
+    marginTop: 8,
+    backgroundColor: "#C8813A",
+    borderRadius: 999,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
+  submitText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
 });
 
 export default AdminCreateDestination;
