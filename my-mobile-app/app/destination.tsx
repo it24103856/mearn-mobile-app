@@ -10,13 +10,13 @@ import {
   FlatList,
   Image,
   ImageBackground,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Configuration
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;

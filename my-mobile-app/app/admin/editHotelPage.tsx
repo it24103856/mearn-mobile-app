@@ -8,9 +8,9 @@ import {
   Image,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   Alert,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";

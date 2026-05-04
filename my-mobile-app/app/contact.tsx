@@ -3,13 +3,13 @@ import React, { useEffect, useState } from "react";
 import {
   Image,
   ImageBackground,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ContactForm from "../components/ContactForm";
 import Footer from "../components/Footer";
 import Header from "../components/Header";

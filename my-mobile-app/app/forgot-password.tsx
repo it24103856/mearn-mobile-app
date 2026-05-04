@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft, Lock, Mail, ShieldCheck } from "lucide-react-native";
 import React, { useState } from 'react';
 import Footer from '../components/Footer';
-import { ActivityIndicator, Alert, Image, ImageBackground, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;
 

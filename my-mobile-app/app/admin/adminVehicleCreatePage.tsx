@@ -8,12 +8,12 @@ import {
   Image,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   Alert,
   Switch,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";

@@ -4,7 +4,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from "react";
 import Footer from '../components/Footer';
-import { ActivityIndicator, Alert, Image, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { uploadFile } from '../lib/supabase';
 
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;

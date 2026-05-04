@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   Alert,
   Modal,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import axios from "axios";
 import { Trash2, Pencil, Plus, Users, Fuel, Car } from "lucide-react-native";
