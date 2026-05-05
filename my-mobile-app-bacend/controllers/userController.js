@@ -165,15 +165,34 @@ export async function googlelogin(req, res) {
 
 export async function getuser(req, res) {
     try {
+        console.log("📋 getuser called - req.user:", req.user);
+        
         if (!req.user?.email) {
-            return res.status(401).json({ message: "Unauthorized" });
+            console.error("❌ Missing email in req.user:", req.user);
+            return res.status(401).json({ message: "Unauthorized - no email in token" });
         }
 
+        console.log("🔍 Fetching user with email:", req.user.email);
         const user = await User.findOne({ email: req.user.email });
-        if (!user) return res.status(404).json({ message: "User not found" });
+        
+        if (!user) {
+            console.warn("⚠️ User not found for email:", req.user.email);
+            return res.status(404).json({ message: "User not found" });
+        }
+        
+        console.log("✅ User fetched successfully:", user._id);
         res.json(user);
     } catch (error) {
-        res.status(500).json({ message: "Error fetching user", error: error.message });
+        console.error("❌ Error in getuser:", {
+            message: error.message,
+            stack: error.stack,
+            userEmail: req.user?.email
+        });
+        res.status(500).json({ 
+            message: "Error fetching user", 
+            error: error.message,
+            details: error.stack 
+        });
     }
 }
 
