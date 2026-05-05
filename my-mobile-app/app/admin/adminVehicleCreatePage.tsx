@@ -22,7 +22,6 @@ import {
   Settings,
   Upload,
   Fuel,
-  Users,
   Briefcase,
   DollarSign,
   ArrowLeft,
@@ -109,6 +108,7 @@ export default function AdminVehicleCreatePage() {
       const headers = await getAuthHeaders();
       const payload = { 
         ...formData, 
+        seatingCapacity: seats,
         images,
         driverId: formData.driverId === "" ? undefined : formData.driverId 
       };
@@ -125,7 +125,12 @@ export default function AdminVehicleCreatePage() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        >
           
           {/* Header */}
           <View style={styles.header}>
@@ -166,7 +171,20 @@ export default function AdminVehicleCreatePage() {
             <SectionHeader icon={<Settings size={20} color="#C8813A" />} title="Specifications" />
             
             <View style={styles.row}>
-               <IconInput icon={<Users size={18} color="#9CA3AF" />} placeholder="Seats" value={formData.seatingCapacity} keyboardType="numeric" onChangeText={(t: string) => setFormData({...formData, seatingCapacity: t})} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Seats</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Seats"
+                  value={formData.seatingCapacity}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  returnKeyType="done"
+                  onChangeText={(t: string) =>
+                    setFormData({ ...formData, seatingCapacity: t.replace(/[^0-9]/g, "") })
+                  }
+                />
+              </View>
                <View style={{ width: 10 }} />
                <IconInput icon={<Briefcase size={18} color="#9CA3AF" />} placeholder="Bags" value={formData.luggageCapacity} keyboardType="numeric" onChangeText={(t: string) => setFormData({...formData, luggageCapacity: t})} />
             </View>

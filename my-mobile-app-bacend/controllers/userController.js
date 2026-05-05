@@ -165,6 +165,10 @@ export async function googlelogin(req, res) {
 
 export async function getuser(req, res) {
     try {
+        if (!req.user?.email) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
         const user = await User.findOne({ email: req.user.email });
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json(user);

@@ -69,6 +69,9 @@ export default function AdminVehicleUpdatePage() {
       const vehicleRes = await axios.get(`${backendUrl}/vehicles/${id}`, { headers });
       if (vehicleRes.data.success) {
         const v = vehicleRes.data.data;
+        const initialDriverId =
+          typeof v.driverId === "string" ? v.driverId : v.driverId?._id || "";
+        const initialFuelType = v.fuelType === "Electric" ? "EV" : (v.fuelType || "Petrol");
         setFormData({
           type: v.type || "Car",
           make: v.make || "",
@@ -77,9 +80,9 @@ export default function AdminVehicleUpdatePage() {
           seatingCapacity: v.seatingCapacity?.toString() || "",
           luggageCapacity: v.luggageCapacity?.toString() || "",
           hasAC: v.hasAC ?? true,
-          fuelType: v.fuelType || "Petrol",
+          fuelType: initialFuelType,
           pricePerKm: v.pricePerKm?.toString() || "",
-          driverId: v.driverId || "",
+          driverId: initialDriverId,
         });
         setImages(v.images || []);
       }
@@ -130,12 +133,22 @@ export default function AdminVehicleUpdatePage() {
     setUpdating(true);
     try {
       const headers = await getAuthHeaders();
-      const payload = { ...formData, images };
+      const normalizedFuelType = formData.fuelType === "Electric" ? "EV" : formData.fuelType;
+      const payload = {
+        ...formData,
+        seatingCapacity: seats,
+        pricePerKm: price,
+        fuelType: normalizedFuelType,
+        driverId: formData.driverId || undefined,
+        images,
+      };
       await axios.put(`${backendUrl}/vehicles/${id}`, payload, { headers });
       Alert.alert("Success", "Vehicle updated successfully");
       router.back();
     } catch (err: any) {
-      Alert.alert("Update Failed", err?.response?.data?.message || "Failed to update vehicle");
+      const backendError = err?.response?.data?.error;
+      const backendMessage = err?.response?.data?.message;
+      Alert.alert("Update Failed", backendError || backendMessage || "Failed to update vehicle");
     } finally {
       setUpdating(false);
     }
@@ -208,6 +221,7 @@ export default function AdminVehicleUpdatePage() {
                     <Picker.Item label="Petrol" value="Petrol" />
                     <Picker.Item label="Diesel" value="Diesel" />
                     <Picker.Item label="Hybrid" value="Hybrid" />
+                    <Picker.Item label="Electric" value="EV" />
                   </Picker>
                </View>
                <View style={{ width: 10 }} />
