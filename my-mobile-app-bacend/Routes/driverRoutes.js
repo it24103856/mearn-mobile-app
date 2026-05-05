@@ -4,22 +4,14 @@ import { protect, isAdmin } from '../middleware/authMiddleware.js';
 
 const router=express.Router();
 
-//get driver by email
+// PUBLIC ENDPOINTS - No auth required
 router.get('/get/:email', getDriver);
 router.get('/customer/get-all', getAllDriversed);
 
-//create driver
+// PROTECTED ENDPOINTS - Admin only
 router.post('/create', protect, isAdmin, createDriver);
-
-//get all drivers(admin)
 router.get('/get-all', protect, getAllDrivers);
-
-
-
-//update driver
 router.put('/update/:email', protect, isAdmin, updateDriver);
-
-//delete driver
 router.delete('/delete/:email', protect, isAdmin, deleteDriver);
 
 export default router;
