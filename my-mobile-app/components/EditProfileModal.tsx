@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { getAuthToken } from '../lib/auth';
 
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -27,7 +27,7 @@ export default function EditProfileModal({ user, visible, onClose, onUpdate }: a
 
   const handleSave = async () => {
     setLoading(true);
-    const token = await AsyncStorage.getItem("token");
+    const token = await getAuthToken();
 
     try {
       let imageUrl = formData.image;

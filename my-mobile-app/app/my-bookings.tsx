@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
+import { getAuthToken } from '../lib/auth';
 import { Calendar, CreditCard, MapPin, MessageSquare, Star, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import Footer from '../components/Footer';
@@ -53,7 +53,7 @@ export default function MyBookings() {
         }
 
         // Otherwise, extract from token
-        const token = await AsyncStorage.getItem('token');
+        const token = await getAuthToken();
         if (token) {
           const decoded: any = jwtDecode(token);
           if (decoded?.id) {
@@ -84,7 +84,7 @@ export default function MyBookings() {
 
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       
       // Clean ID if it starts with ":"
       const cleanId = typeof userId === 'string' && userId.startsWith(":")
@@ -122,7 +122,7 @@ export default function MyBookings() {
 
     setSubmitting(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       await axios.post(`${backendUrl}/reviews`, {
         bookingId: selectedBooking._id,
         rating,

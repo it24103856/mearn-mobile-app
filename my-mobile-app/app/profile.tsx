@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 import { LinearGradient } from 'expo-linear-gradient'; // npx expo install expo-linear-gradient
 import { router } from 'expo-router';
@@ -7,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import Footer from '../components/Footer';
 import { ActivityIndicator, Alert, Image, SafeAreaView, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Header from '../components/Header';
+import { getAuthToken } from '../lib/auth';
 
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -17,7 +17,7 @@ export default function ProfileScreen() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const token = await AsyncStorage.getItem("token");
+                const token = await getAuthToken();
                 const res = await axios.get(`${backendUrl}/users/`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });

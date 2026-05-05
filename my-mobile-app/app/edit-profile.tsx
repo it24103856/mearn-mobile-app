@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
@@ -7,6 +6,7 @@ import Footer from '../components/Footer';
 import { ActivityIndicator, Alert, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { uploadFile } from '../lib/supabase';
+import { getAuthToken } from '../lib/auth';
 
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -30,7 +30,7 @@ export default function EditProfileScreen() {
   useEffect(() => {
     const fetchUser = async () => {
         try {
-            const token = await AsyncStorage.getItem("token");
+            const token = await getAuthToken();
             const res = await axios.get(`${backendUrl}/users/`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -65,7 +65,7 @@ export default function EditProfileScreen() {
 
   const handleSave = async () => {
     setLoading(true);
-    const token = await AsyncStorage.getItem("token");
+    const token = await getAuthToken();
 
     try {
       let imageUrl = formData.image;
