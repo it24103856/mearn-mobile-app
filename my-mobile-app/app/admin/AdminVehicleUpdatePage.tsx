@@ -117,7 +117,16 @@ export default function AdminVehicleUpdatePage() {
 
   const handleUpdate = async () => {
     if (images.length === 0) return Alert.alert("Required", "At least one image is required");
-    
+
+    // Basic validations
+    if (!formData.make.trim()) return Alert.alert("Validation", "Please enter the vehicle make.");
+    if (!formData.model.trim()) return Alert.alert("Validation", "Please enter the vehicle model.");
+    if (!formData.registrationNumber.trim()) return Alert.alert("Validation", "Please enter registration number.");
+    const seats = parseInt(String(formData.seatingCapacity || "0"), 10);
+    if (isNaN(seats) || seats < 1) return Alert.alert("Validation", "Seating capacity must be at least 1.");
+    const price = parseFloat(String(formData.pricePerKm || formData.pricePerKm));
+    if (isNaN(price) || price <= 0) return Alert.alert("Validation", "Price per KM must be a number greater than 0.");
+
     setUpdating(true);
     try {
       const headers = await getAuthHeaders();

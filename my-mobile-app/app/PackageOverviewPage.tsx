@@ -11,7 +11,8 @@ import {
   Linking,
   FlatList,
 } from "react-native";
-import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
+import { useRoute, RouteProp } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import axios from "axios";
 import { Ionicons, FontAwesome, FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 
@@ -147,7 +148,7 @@ async function logView(id: string, duration: number): Promise<void> {
 // ═══════════════════════════════════════════════════════════════════════════
 const PackageOverviewPage: React.FC = () => {
   const route = useRoute<PackageOverviewRouteProp>();
-  const navigation = useNavigation<any>();
+  const router = useRouter();
   const { id } = route.params;
 
   const [pkg, setPkg] = useState<Package | null>(null);
@@ -274,7 +275,7 @@ const PackageOverviewPage: React.FC = () => {
             resizeMode="cover"
           />
           <View style={styles.heroOverlay} />
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={22} color={C.navy} />
           </TouchableOpacity>
           <View style={styles.heroContent}>
@@ -361,7 +362,7 @@ const PackageOverviewPage: React.FC = () => {
                 <DestinationCard
                   key={idx}
                   dest={dest}
-                  onView={() => navigation.navigate("Destination", { id: dest._id })}
+                  onView={() => router.push({ pathname: "/destinationOverview", params: { id: dest._id } })}
                 />
               ))}
             </View>
@@ -378,7 +379,7 @@ const PackageOverviewPage: React.FC = () => {
                 <HotelCard
                   key={idx}
                   hotel={hotel}
-                  onView={() => navigation.navigate("HotelDetails", { id: hotel._id })}
+                  onView={() => router.push({ pathname: "/hotelOverview", params: { id: hotel._id } })}
                 />
               ))}
             </View>
@@ -521,7 +522,12 @@ const PackageOverviewPage: React.FC = () => {
           </View>
           <TouchableOpacity
             style={styles.bookBtn}
-            onPress={() => navigation.navigate("Booking", { packageId: pkg._id })}
+            onPress={() =>
+              router.push({
+                pathname: "/bookingpage",
+                params: { packageId: pkg._id },
+              })
+            }
           >
             <FontAwesome name="calendar-check-o" size={18} color={C.navy} />
             <Text style={styles.bookBtnText}>BOOK NOW</Text>

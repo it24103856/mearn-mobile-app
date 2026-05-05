@@ -3,7 +3,7 @@ import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getAuthToken } from '../lib/auth';
 import { jwtDecode } from "jwt-decode";
-import { ArrowLeft, Bed, Calendar, ChevronLeft, MapPin } from "lucide-react-native";
+import { ArrowLeft, Bed, Calendar, ChevronLeft, MapPin, Users, Truck } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
@@ -27,10 +27,31 @@ interface Room {
   finalPrice: number;
 }
 
+interface Driver {
+  _id: string;
+  name: string;
+  phone: string;
+  licenseNumber: string;
+  profileImage?: string;
+  vehicleType: string;
+}
+
+interface Vehicle {
+  _id: string;
+  type: string;
+  make: string;
+  model: string;
+  registrationNumber: string;
+  seatingCapacity: number;
+  hasAC: boolean;
+  fuelType: string;
+  pricePerKm: number;
+}
+
 // Use centralized auth helper
 
 export default function TravelBookingUI() {
-  const { id, hotelId } = useLocalSearchParams<{ id?: string; hotelId?: string }>();
+  const { id, hotelId, packageId } = useLocalSearchParams<{ id?: string; hotelId?: string; packageId?: string }>();
   const router = useRouter();
 
   const [step, setStep] = useState(1);
@@ -39,9 +60,14 @@ export default function TravelBookingUI() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateField, setDateField] = useState<"checkIn" | "checkOut">("checkIn");
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [driversLoading, setDriversLoading] = useState(false);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
 
 const backendUrl = process.env.EXPO_PUBLIC_API_URL;
   const resolvedHotelId = hotelId || id || "";
+  const resolvedPackageId = packageId || "";
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -51,10 +77,51 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
     country: "Sri Lanka",
     checkIn: "",
     checkOut: "",
+    selectedDriver: null as Driver | null,
+    selectedVehicle: null as Vehicle | null,
     adults: "1",
     children: "0",
     selectedRoom: null as Room | null,
+    packageId: resolvedPackageId,
   });
+
+  const fetchDriversAndVehicles = async () => {
+    try {
+      setDriversLoading(true);
+      setVehiclesLoading(true);
+
+      // These endpoints should be public (no auth needed)
+      const axiosConfig = {
+        headers: {
+          "Content-Type": "application/json",
+          // Don't send auth token for public endpoints
+        },
+      };
+
+      const [driversRes, vehiclesRes] = await Promise.all([
+        axios.get(`${backendUrl}/driver/customer/get-all`, axiosConfig),
+        axios.get(`${backendUrl}/vehicles`, axiosConfig),
+      ]);
+
+      console.log("Drivers response:", driversRes.data);
+      console.log("Vehicles response:", vehiclesRes.data);
+
+      if (driversRes.data?.data) {
+        setDrivers(Array.isArray(driversRes.data.data) ? driversRes.data.data : []);
+      }
+      if (vehiclesRes.data?.data) {
+        setVehicles(Array.isArray(vehiclesRes.data.data) ? vehiclesRes.data.data : []);
+      }
+    } catch (err: any) {
+      console.error("Error fetching drivers/vehicles:", err.response?.status, err.response?.data || err.message);
+      if (err.response?.status === 401) {
+        console.warn("Unauthorized - these endpoints should be public");
+      }
+    } finally {
+      setDriversLoading(false);
+      setVehiclesLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchHotelData = async () => {
@@ -78,6 +145,8 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
       }
     };
     fetchHotelData();
+    fetchDriversAndVehicles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedHotelId]);
 
   const onDateChange = (_event: any, selectedDate?: Date) => {
@@ -95,6 +164,28 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
     const isoString = selectedDate.toISOString();
     setFormData(prev => ({ ...prev, [dateField]: isoString }));
     console.log(`${dateField} set to:`, isoString);
+  };
+
+  // Helpers
+  const isValidEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const toDateOnly = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+  const parseDateStringToDate = (s: string): Date | null => {
+    if (!s) return null;
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return null;
+    return d;
+  };
+
+  const isDateTodayOrFuture = (s: string) => {
+    const d = parseDateStringToDate(s);
+    if (!d) return false;
+    const today = toDateOnly(new Date());
+    return toDateOnly(d) >= today;
   };
 
   // Format date string for display purposes
@@ -118,15 +209,44 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
       if (!formData.firstName.trim()) { Alert.alert("Missing Info", "Please enter your first name."); return; }
       if (!formData.lastName.trim())  { Alert.alert("Missing Info", "Please enter your last name.");  return; }
       if (!formData.email.trim())     { Alert.alert("Missing Info", "Please enter your email.");      return; }
+      if (!isValidEmail(formData.email.trim())) { Alert.alert("Invalid Email", "Please enter a valid email address."); return; }
       if (!formData.phone.trim())     { Alert.alert("Missing Info", "Please enter your phone.");      return; }
     }
     if (step === 2) {
       if (!formData.checkIn)  { Alert.alert("Missing Info", "Please select a check-in date.");  return; }
       if (!formData.checkOut) { Alert.alert("Missing Info", "Please select a check-out date."); return; }
-      if (formData.checkIn >= formData.checkOut) {
+
+      // Parse dates and validate they're today or future
+      const checkInDate = parseDateStringToDate(formData.checkIn);
+      const checkOutDate = parseDateStringToDate(formData.checkOut);
+      if (!checkInDate) { Alert.alert("Invalid Date", "Please select a valid check-in date."); return; }
+      if (!checkOutDate) { Alert.alert("Invalid Date", "Please select a valid check-out date."); return; }
+
+      if (!isDateTodayOrFuture(formData.checkIn)) {
+        Alert.alert("Invalid Date", "Check-in date must be today or a future date."); return;
+      }
+      if (!isDateTodayOrFuture(formData.checkOut)) {
+        Alert.alert("Invalid Date", "Check-out date must be today or a future date."); return;
+      }
+
+      if (toDateOnly(checkOutDate) <= toDateOnly(checkInDate)) {
         Alert.alert("Invalid Dates", "Check-out must be after check-in."); return;
       }
       if (!formData.selectedRoom) { Alert.alert("Missing Info", "Please select a room type."); return; }
+    }
+    if (step === 3) {
+      // If one transport option is selected, both must be selected
+      const hasDriver = !!formData.selectedDriver;
+      const hasVehicle = !!formData.selectedVehicle;
+      
+      if (hasDriver && !hasVehicle) { 
+        Alert.alert("Missing Info", "Please select a vehicle."); 
+        return; 
+      }
+      if (hasVehicle && !hasDriver) { 
+        Alert.alert("Missing Info", "Please select a driver."); 
+        return; 
+      }
     }
     setStep(step + 1);
   };
@@ -175,6 +295,12 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
         adults: parseInt(formData.adults) || 1,
         children: parseInt(formData.children) || 0,
         totalPrice: Number(formData.selectedRoom!.finalPrice),
+        // Only include driver/vehicle if BOTH are selected
+        ...(formData.selectedDriver && formData.selectedVehicle && { 
+          driverId: formData.selectedDriver._id,
+          vehicleId: formData.selectedVehicle._id 
+        }),
+        ...(resolvedPackageId && { packageId: resolvedPackageId }),
       };
 
       console.log("Sending booking payload:", JSON.stringify(payload, null, 2));
@@ -197,9 +323,18 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
         Alert.alert("Booking Failed", res.data?.message || "Something went wrong.");
       }
     } catch (err: any) {
-      console.error("Booking Error Full:", err.response?.data || err.message);
-      const serverMessage = err.response?.data?.message || err.message || "Booking failed.";
-      Alert.alert("Booking Error", serverMessage);
+      console.error("Booking Error Full:", err.response?.status, err.response?.data || err.message);
+      
+      // Handle 401 Unauthorized specifically for driver/vehicle creation
+      if (err.response?.status === 401) {
+        Alert.alert(
+          "Authorization Error",
+          "Admin must create drivers and vehicles first. Please contact support or try booking without transport options."
+        );
+      } else {
+        const serverMessage = err.response?.data?.message || err.message || "Booking failed.";
+        Alert.alert("Booking Error", serverMessage);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -230,16 +365,18 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
         )}
         <View style={styles.headerTextContainer}>
           <Text style={styles.hotelName}>{details?.name || "Hotel Name"}</Text>
-          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
-            <MapPin size={14} color="#888" />
-            <Text style={styles.hotelLocation}> {details?.city}, {details?.district}</Text>
-          </View>
+          {(details?.city || details?.district) && (
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+              <MapPin size={14} color="#888" />
+              <Text style={styles.hotelLocation}>{` ${details?.city || ""}${details?.city && details?.district ? ", " : ""}${details?.district || ""}`}</Text>
+            </View>
+          )}
         </View>
       </View>
 
       {/* Step Indicator */}
       <View style={styles.stepRow}>
-        {["Guest Info", "Stay Details", "Confirm"].map((label, i) => (
+        {["Guest Info", "Stay Details", "Transport", "Confirm"].map((label, i) => (
           <View key={i} style={styles.stepItem}>
             <View style={[styles.stepCircle, step === i + 1 && styles.stepCircleActive]}>
               <Text style={[styles.stepNum, step === i + 1 && styles.stepNumActive]}>{i + 1}</Text>
@@ -360,6 +497,92 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
 
         {/* ── STEP 3 ── */}
         {step === 3 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Select Transport (Optional)</Text>
+            <Text style={{ fontSize: 12, color: "#888", marginBottom: 12 }}>Select a driver and vehicle for your transport, or skip to complete booking without transport.</Text>
+
+            {/* Driver Selection */}
+            <Text style={styles.fieldLabel}>Select Driver</Text>
+            {driversLoading ? (
+              <ActivityIndicator size="small" color="#00AEEF" style={{ marginVertical: 10 }} />
+            ) : drivers.length === 0 ? (
+              <Text style={styles.noDataText}>No drivers available</Text>
+            ) : (
+              drivers.map((driver: Driver) => (
+                <TouchableOpacity
+                  key={driver._id}
+                  style={[
+                    styles.transportCard,
+                    formData.selectedDriver?._id === driver._id && styles.activeTransport,
+                  ]}
+                  onPress={() => setFormData({ ...formData, selectedDriver: driver })}
+                >
+                  <Users size={20} color={formData.selectedDriver?._id === driver._id ? "white" : "#00AEEF"} />
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.transportName,
+                        formData.selectedDriver?._id === driver._id && { color: "white" },
+                      ]}
+                    >
+                      {driver.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.transportDetail,
+                        formData.selectedDriver?._id === driver._id && { color: "rgba(255,255,255,0.8)" },
+                      ]}
+                    >
+                      📞 {driver.phone}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+
+            {/* Vehicle Selection */}
+            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Select Vehicle</Text>
+            {vehiclesLoading ? (
+              <ActivityIndicator size="small" color="#00AEEF" style={{ marginVertical: 10 }} />
+            ) : vehicles.length === 0 ? (
+              <Text style={styles.noDataText}>No vehicles available</Text>
+            ) : (
+              vehicles.map((vehicle: Vehicle) => (
+                <TouchableOpacity
+                  key={vehicle._id}
+                  style={[
+                    styles.transportCard,
+                    formData.selectedVehicle?._id === vehicle._id && styles.activeTransport,
+                  ]}
+                  onPress={() => setFormData({ ...formData, selectedVehicle: vehicle })}
+                >
+                  <Truck size={20} color={formData.selectedVehicle?._id === vehicle._id ? "white" : "#00AEEF"} />
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.transportName,
+                        formData.selectedVehicle?._id === vehicle._id && { color: "white" },
+                      ]}
+                    >
+                      {vehicle.make} {vehicle.model}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.transportDetail,
+                        formData.selectedVehicle?._id === vehicle._id && { color: "rgba(255,255,255,0.8)" },
+                      ]}
+                    >
+                      🚗 {vehicle.type} • 👥 {vehicle.seatingCapacity} seats • {vehicle.hasAC ? "❄️ AC" : "No AC"}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* ── STEP 4 ── */}
+        {step === 4 && (
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>Booking Summary</Text>
             {[
@@ -371,6 +594,8 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
               ["Room Type",        formData.selectedRoom?.type ?? ""],
               ["Adults / Children",`${formData.adults} / ${formData.children}`],
               ["Hotel",            details?.name ?? ""],
+              ["Driver",           formData.selectedDriver?.name ?? ""],
+              ["Vehicle",          formData.selectedVehicle ? `${formData.selectedVehicle.make} ${formData.selectedVehicle.model}` : ""],
             ].map(([key, val]) => (
               <View style={styles.summaryRow} key={key}>
                 <Text style={styles.summaryKey}>{key}</Text>
@@ -397,12 +622,12 @@ const backendUrl = process.env.EXPO_PUBLIC_API_URL;
         )}
         <TouchableOpacity
           style={[styles.confirmBtn, isSubmitting && { opacity: 0.7 }]}
-          onPress={step === 3 ? handleBookingSubmit : handleNext}
+          onPress={step === 4 ? handleBookingSubmit : handleNext}
           disabled={isSubmitting}
         >
           {isSubmitting
             ? <ActivityIndicator color="white" />
-            : <Text style={styles.btnText}>{step === 3 ? "CONFIRM & PAY" : "NEXT →"}</Text>
+            : <Text style={styles.btnText}>{step === 4 ? "CONFIRM & PAY" : "NEXT →"}</Text>
           }
         </TouchableOpacity>
       </View>
@@ -448,4 +673,9 @@ const styles = StyleSheet.create({
   backBtn:             { backgroundColor: "#eee", padding: 15, borderRadius: 10 },
   backBtnText:         { color: "#f97316", fontSize: 16, fontWeight: '600', marginLeft: 5 },
   btnText:             { color: "white", fontWeight: "bold", fontSize: 16 },
+  transportCard:       { flexDirection: "row", padding: 16, backgroundColor: "white", borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: "#ddd", alignItems: "center" },
+  activeTransport:     { backgroundColor: "#00AEEF", borderColor: "#00AEEF" },
+  transportName:       { fontWeight: "bold", fontSize: 14, color: "#333" },
+  transportDetail:     { color: "#888", fontSize: 12, marginTop: 4 },
+  noDataText:          { fontSize: 14, color: "#999", textAlign: "center", paddingVertical: 16 },
 });

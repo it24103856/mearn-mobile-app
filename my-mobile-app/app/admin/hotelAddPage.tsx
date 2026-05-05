@@ -207,6 +207,11 @@ const AddHotelPage: React.FC<AddHotelPageProps> = ({
   const [hotelImageUris, setHotelImageUris] = useState<string[]>([]);
   const [phoneError, setPhoneError] = useState("");
 
+  const isValidEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const provinces = useMemo(() => Object.keys(SRI_LANKA_DATA), []);
   const districts = useMemo(() => formData.province ? Object.keys(SRI_LANKA_DATA[formData.province]) : [], [formData.province]);
   const cities = useMemo(() => (formData.province && formData.district) ? SRI_LANKA_DATA[formData.province][formData.district] : [], [formData.province, formData.district]);
@@ -292,6 +297,28 @@ const AddHotelPage: React.FC<AddHotelPageProps> = ({
       Alert.alert("Validation", "Phone number must be exactly 10 digits!");
       return;
     }
+
+    // Email validation
+    if (!formData.email || !isValidEmail(formData.email)) {
+      Alert.alert("Validation", "Please provide a valid email address for the hotel.");
+      return;
+    }
+
+    // Description length validation
+    if (!formData.description || formData.description.trim().length < 6) {
+      Alert.alert("Validation", "Description must be at least 6 characters long.");
+      return;
+    }
+
+    // Room prices validation
+    for (let i = 0; i < roomTypes.length; i++) {
+      const rp = roomTypes[i].originalPrice;
+      const val = parseFloat(String(rp));
+      if (isNaN(val) || val <= 0) {
+        Alert.alert("Validation", `Please enter a valid price (> 0) for unit ${i + 1} (${roomTypes[i].type}).`);
+        return;
+      }
+    }
     if (!formData.province || !formData.district || !formData.city) {
       Alert.alert("Validation", "Please complete the location details!");
       return;
@@ -371,7 +398,15 @@ const AddHotelPage: React.FC<AddHotelPageProps> = ({
           <SectionHeader emoji="🏨" title="Property Essence" />
           <InputGroup label="Hotel ID" value={formData.hotelID} onChangeText={v => handleChange("hotelID", v)} placeholder="e.g. HTL001" />
           <InputGroup label="Hotel Name" value={formData.name} onChangeText={v => handleChange("name", v)} placeholder="e.g. The Grand Ceylon" />
-          <InputGroup label="Email" value={formData.email} onChangeText={v => handleChange("email", v)} placeholder="hotel@example.com" keyboardType="email-address" />
+          <InputGroup
+            label="Email"
+            value={formData.email}
+            onChangeText={v => handleChange("email", v)}
+            placeholder="hotel@example.com"
+            keyboardType="email-address"
+            hasError={!!formData.email && !isValidEmail(formData.email)}
+            errorMsg={!!formData.email && !isValidEmail(formData.email) ? "Enter a valid email address" : undefined}
+          />
 
           {/* Phone with validation */}
           <View style={styles.inputGroup}>

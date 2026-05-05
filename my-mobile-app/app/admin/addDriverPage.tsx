@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -14,11 +14,12 @@ import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { uploadFile } from '../../lib/supabase';
+import { getAuthToken } from '../../lib/auth';
 
 const AdminAddDriver = () => {
-    const navigation = useNavigation();
+    const router = useRouter();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -34,12 +35,35 @@ const AdminAddDriver = () => {
     const [uploading, setUploading] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
     const [imageFile, setImageFile] = useState<any>(null);
+    const [token, setToken] = useState<string>('');
 
     const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://your-api.com';
-    const token = ''; // ← Add your token logic (AsyncStorage recommended)
+
+    // Fetch token on component mount
+    useEffect(() => {
+        const fetchToken = async () => {
+            try {
+                const authToken = await getAuthToken();
+                if (!authToken) {
+                    Toast.show({ type: 'error', text1: 'Please login first' });
+                    router.back();
+                    return;
+                }
+                setToken(authToken);
+            } catch (err) {
+                Toast.show({ type: 'error', text1: 'Failed to get authentication' });
+            }
+        };
+        fetchToken();
+    }, [router]);
 
     const handleChange = (field: string, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const isValidEmail = (email: string) => {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
     };
 
     // Image Picker
@@ -57,9 +81,31 @@ const AdminAddDriver = () => {
     };
 
     const handleSubmit = async () => {
+        // Check if token exists
+        if (!token) {
+            Toast.show({ type: 'error', text1: 'Not authenticated. Please login again.' });
+            return;
+        }
+
         // Phone validation
         if (formData.phone.length !== 10) {
             Toast.show({ type: 'error', text1: 'Phone number must be exactly 10 digits!' });
+            return;
+        }
+
+        // Email validation
+        if (!formData.email.trim()) {
+            Toast.show({ type: 'error', text1: 'Please enter an email address' });
+            return;
+        }
+        if (!isValidEmail(formData.email.trim())) {
+            Toast.show({ type: 'error', text1: 'Please enter a valid email address' });
+            return;
+        }
+
+        // License validation: must be exactly 6 digits
+        if (!/^[0-9]{6}$/.test(formData.licenseNumber)) {
+            Toast.show({ type: 'error', text1: 'License number must be exactly 6 digits' });
             return;
         }
 
@@ -75,20 +121,31 @@ const AdminAddDriver = () => {
             const finalData = { ...formData, profileImage: profileImageUrl };
 
             await axios.post(`${backendUrl}/driver/create`, finalData, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
             });
 
             Toast.show({ type: 'success', text1: 'Driver registered successfully!' });
 
             setTimeout(() => {
-                navigation.goBack();
+                router.push('/admin/adminDriverPage');
             }, 1500);
         } catch (error: any) {
-            const errMsg = error.response?.data?.message || '';
-            if (errMsg.includes('E11000') || errMsg.toLowerCase().includes('duplicate')) {
-                Toast.show({ type: 'error', text1: 'This email is already registered!' });
+            console.error("Add driver error:", error.response?.status, error.response?.data);
+            
+            if (error.response?.status === 401) {
+                Toast.show({ type: 'error', text1: 'Unauthorized! You must be an admin to add drivers.' });
+            } else if (error.response?.status === 403) {
+                Toast.show({ type: 'error', text1: 'Access denied! Only admins can add drivers.' });
             } else {
-                Toast.show({ type: 'error', text1: errMsg || 'Registration failed' });
+                const errMsg = error.response?.data?.message || '';
+                if (errMsg.includes('E11000') || errMsg.toLowerCase().includes('duplicate')) {
+                    Toast.show({ type: 'error', text1: 'This email is already registered!' });
+                } else {
+                    Toast.show({ type: 'error', text1: errMsg || 'Registration failed' });
+                }
             }
         } finally {
             setUploading(false);
@@ -102,7 +159,7 @@ const AdminAddDriver = () => {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#4B5563" />
                 </TouchableOpacity>
                 <Text style={styles.title}>
@@ -182,11 +239,18 @@ const AdminAddDriver = () => {
                         <MaterialCommunityIcons name="card-account-details" size={20} color="#94A3B8" />
                         <TextInput
                             style={styles.input}
-                            placeholder="B1234567"
+                            placeholder="123456"
                             value={formData.licenseNumber}
-                            onChangeText={(t) => handleChange('licenseNumber', t)}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            onChangeText={(t) => handleChange('licenseNumber', t.replace(/\D/g, ''))}
                         />
                     </View>
+                    {formData.licenseNumber.length > 0 && formData.licenseNumber.length < 6 && (
+                        <Text style={styles.validationText}>
+                            * License number must be exactly 6 digits (Current: {formData.licenseNumber.length})
+                        </Text>
+                    )}
                 </View>
 
                 <View style={styles.inputGroup}>
