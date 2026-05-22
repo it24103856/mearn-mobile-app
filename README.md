@@ -30,3 +30,23 @@ mearn-mobile-app/
 ├── README.md               # Documentation
 └── tsconfig.json           # TypeScript configuration
 
+
+📱 Running on Your Device
+Once the Expo server starts, a QR Code will appear in your terminal.
+
+Connect your mobile device and your development computer to the same Wi-Fi network.
+
+Open the Expo Go app (Android) or your Camera app (iOS) and scan the QR code.
+
+The JavaScript bundle will build and launch the Travel Agency app on your phone!
+
+✨ Key Features
+Secure Authentication: Managed safely via Supabase.
+
+Dynamic Travel Catalogs: Real-time fetching of destinations and tours from MongoDB.
+
+Document/Receipt Uploads: Uploading files directly to Supabase storage buckets for verification.
+
+Seamless Booking Workflow: Full-stack operational pipeline from client selection to backend processing.
+
+⭐ If you find this project helpful for your learning, please give this repository a star!
